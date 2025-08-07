@@ -5,6 +5,10 @@ import fitz  # PyMuPDF
 import openai
 import os
 
+from openai import OpenAI
+
+client = OpenAI()
+
 # Cargar API Key desde variable de entorno
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -47,12 +51,12 @@ Respond with:
 3. Suggestions for improving the resume to better fit the role.
 """
 
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[{"role": "user", "content": prompt}]
     )
 
-    return response['choices'][0]['message']['content']
+    return response.choices[0].message.content
 
 @app.route('/', methods=['GET', 'POST'])
 def scan():
