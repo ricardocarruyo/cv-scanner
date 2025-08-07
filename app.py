@@ -2,6 +2,7 @@ from flask import Flask, request, render_template_string
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import fitz  # PyMuPDF
+import os
 
 app = Flask(__name__)
 
@@ -44,4 +45,5 @@ def scan():
     return render_template_string(HTML_TEMPLATE, score=score)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+    port = int(os.environ.get("PORT", 10000))  # Render usa una variable de entorno llamada PORT
+    app.run(host="0.0.0.0", port=port)
