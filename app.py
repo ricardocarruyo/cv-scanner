@@ -268,8 +268,9 @@ Respond with:
 @app.route('/', methods=['GET', 'POST'])
 def scan():
     feedback = None
-    model_used = None  # 1 = OpenAI, 2 = Gemini
+    model_used = None
     score = None
+    oi_error = None
 
     if request.method == 'POST':
         cv_file = request.files['cv']
@@ -279,22 +280,25 @@ def scan():
             cv_text = extract_text_from_pdf(cv_file)
 
             # Intentar OpenAI primero
-            feedback_text = analizar_con_openai(cv_text, jobdesc)
+            feedback_text, oi_error = analizar_con_openai(cv_text, jobdesc)
             if feedback_text:
                 model_used = 1
-            # Si no hay feedback, usar Gemini
-            if feedback_text is None and gemini_api_key:
+            elif gemini_api_key:
                 feedback_text = analizar_con_gemini(cv_text, jobdesc)
                 if feedback_text:
                     model_used = 2
 
             if feedback_text:
-                # Extraer score para el tacómetro
                 score = extraer_score(feedback_text)
-                # Markdown -> HTML
                 feedback = markdown.markdown(feedback_text)
 
-    return render_template_string(HTML_TEMPLATE, feedback=feedback, model_used=model_used, score=score)
+    return render_template_string(
+        HTML_TEMPLATE,
+        feedback=feedback,
+        model_used=model_used,
+        score=score,
+        oi_error=oi_error
+    )
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
