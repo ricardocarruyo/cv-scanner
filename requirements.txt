@@ -3,3 +3,5 @@ scikit-learn
 pymupdf
 openai
 google-generativeai
+markdown
+
