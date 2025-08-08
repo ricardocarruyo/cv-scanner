@@ -4,4 +4,6 @@ pymupdf
 openai
 google-generativeai
 markdown
+langdetect
+
 

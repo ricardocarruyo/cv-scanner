@@ -5,6 +5,7 @@ import markdown
 from openai import OpenAI
 import openai
 import google.generativeai as genai
+import langdetect  # Nueva librería para detectar idioma
 
 # Claves API desde variables de entorno
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -56,11 +57,22 @@ def extract_text_from_pdf(file_stream):
     text = "\n".join([page.get_text() for page in doc])
     return text
 
+def detectar_idioma(texto):
+    try:
+        idioma = langdetect.detect(texto)
+        return "es" if idioma.startswith("es") else "en"
+    except:
+        return "en"
+
 def analizar_con_openai(cv_text, job_desc):
+    idioma = detectar_idioma(cv_text + " " + job_desc)
+    idioma_respuesta = "Spanish" if idioma == "es" else "English"
+
     try:
         client = OpenAI()
         prompt = f"""
 You are a recruiter. Compare the following resume with the job description.
+Please write the entire feedback in **{idioma_respuesta}**.
 
 Resume:
 {cv_text}
@@ -86,9 +98,12 @@ Respond with:
             raise e
 
 def analizar_con_gemini(cv_text, job_desc):
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    idioma = detectar_idioma(cv_text + " " + job_desc)
+    idioma_respuesta = "Spanish" if idioma == "es" else "English"
+
     prompt = f"""
 You are a recruiter. Compare the following resume with the job description.
+Please write the entire feedback in **{idioma_respuesta}**.
 
 Resume:
 {cv_text}
@@ -101,6 +116,7 @@ Respond with:
 2. Key skills or qualifications missing.
 3. Suggestions for improving the resume to better fit the role.
 """
+    model = genai.GenerativeModel("gemini-1.5-flash")
     response = model.generate_content(prompt)
     return response.text
 
