@@ -1,7 +1,6 @@
 Flask
-scikit-learn
 pymupdf
-openai
+openai>=1.40.0
 google-generativeai
 markdown
 langdetect
