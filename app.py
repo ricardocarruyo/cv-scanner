@@ -211,18 +211,36 @@ Respond with:
 2. Key skills or qualifications missing.
 3. Suggestions for improving the resume to better fit the role.
 """
-
     try:
-        resp = client.responses.create(
-            model="gpt-4o",
-            input=prompt,
-            temperature=0.2
-        )
-        return resp.output_text  # texto plano
+        resp = client.responses.create(model="gpt-4o", input=prompt, temperature=0.2)
+        return resp.output_text, None
     except openai.RateLimitError as e:
-        if "insufficient_quota" in str(e):
-            return None
-        raise
+        err = str(e)
+        print("[OpenAI RateLimitError]", err)  # logs Render
+        if "insufficient_quota" in err:
+            return None, "Sin cuota en la API de OpenAI"
+        return None, "Rate limit de OpenAI"
+    except openai.AuthenticationError as e:
+        print("[OpenAI AuthError]", e)
+        return None, "API key inválida o faltante"
+    except openai.PermissionDeniedError as e:
+        print("[OpenAI PermissionDenied]", e)
+        return None, "No tienes acceso al modelo gpt-4o"
+    except openai.APIConnectionError as e:
+        print("[OpenAI APIConnectionError]", e)
+        return None, "Falla de conexión con OpenAI"
+    except openai.APIStatusError as e:
+        print("[OpenAI APIStatusError]", e)
+        return None, f"OpenAI devolvió {getattr(e, 'status_code', 'error')}"
+
+# ---- en scan(), ajusta llamadas ----
+feedback_text, oi_error = analizar_con_openai(cv_text, jobdesc)
+if feedback_text:
+    model_used = 1
+elif gemini_api_key:
+    feedback_text = analizar_con_gemini(cv_text, jobdesc)
+    if feedback_text:
+        model_used = 2
 
 def analizar_con_gemini(cv_text, job_desc):
     idioma = detectar_idioma(cv_text + " " + job_desc)
