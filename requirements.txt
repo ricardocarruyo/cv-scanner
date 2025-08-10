@@ -4,5 +4,5 @@ openai>=1.40.0
 google-generativeai
 markdown
 langdetect
-
-
+requests
+google-auth

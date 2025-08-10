@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template_string, session, redirect, url_for, flash
 import fitz  # PyMuPDF
 import os
 import markdown
@@ -7,20 +7,43 @@ import openai
 import google.generativeai as genai
 import langdetect
 import re
+import secrets, string, requests
+from urllib.parse import urlencode
+from google.oauth2 import id_token
+from google.auth.transport import requests as grequests
 
-# === Config keys ===
+# ======================
+# Configuración de claves/env
+# ======================
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:10000")
+FLASK_SECRET = os.getenv("FLASK_SECRET", "dev-secret-change-me")
 
-# OpenAI client (toma la key del env var)
+# OpenAI client
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-# Gemini (opcional, como fallback)
+# Gemini (opcional, fallback)
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
-app = Flask(__name__)
+# Google OAuth config
+GOOGLE_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
+GOOGLE_SCOPES = "openid email profile"
+GOOGLE_REDIRECT_URI = f"{APP_BASE_URL}/auth/callback"
 
+# ======================
+# Flask app
+# ======================
+app = Flask(__name__)
+app.secret_key = FLASK_SECRET  # importante para sesiones seguras
+
+# ======================
+# HTML (template)
+# ======================
 HTML_TEMPLATE = """
 <!doctype html>
 <html lang="en">
@@ -38,14 +61,40 @@ HTML_TEMPLATE = """
   </style>
 </head>
 <body class="bg-light">
-<div class="container py-5">
-  <h1 class="mb-4 text-center">CV Compatibility Scanner</h1>
+<div class="container py-4">
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="alert alert-info" role="alert">{{ messages[0] }}</div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">CV Compatibility Scanner</h1>
+    <div class="text-end">
+      {% if email %}
+        <div class="d-flex align-items-center justify-content-end gap-2">
+          <span><strong>{{ email }}</strong></span>
+          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('logout') }}">Logout</a>
+        </div>
+      {% else %}
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('login') }}">Login con Google</a>
+      {% endif %}
+    </div>
+  </div>
 
   <div class="row g-4">
-    <!-- Left: form (half width on lg+) -->
+    <!-- Izquierda: Form -->
     <div class="col-12 col-lg-6">
       <div class="card p-4 shadow-sm h-100">
         <form method="post" enctype="multipart/form-data">
+          {% if not email %}
+          <div class="mb-3">
+            <label class="form-label">Email (si no iniciaste sesión):</label>
+            <input type="email" class="form-control" name="email" placeholder="tu@email.com">
+            <div class="form-text">Si inicias sesión con Google no hace falta completar este campo.</div>
+          </div>
+          {% endif %}
           <div class="mb-3">
             <label class="form-label">Upload your CV (PDF):</label>
             <input type="file" class="form-control" name="cv" required>
@@ -59,7 +108,7 @@ HTML_TEMPLATE = """
       </div>
     </div>
 
-    <!-- Right: gauge -->
+    <!-- Derecha: Gauge -->
     <div class="col-12 col-lg-6">
       <div class="card p-4 shadow-sm h-100 d-flex align-items-center justify-content-center">
         {% if score is not none %}
@@ -125,6 +174,9 @@ HTML_TEMPLATE = """
 </html>
 """
 
+# ======================
+# Utilitarios
+# ======================
 def extract_text_from_pdf(file_stream):
     doc = fitz.open(stream=file_stream.read(), filetype="pdf")
     text = "\n".join([page.get_text() for page in doc])
@@ -138,7 +190,7 @@ def detectar_idioma(texto):
         return "en"
 
 def extraer_score(texto):
-    """Intenta extraer un 0–100 del feedback."""
+    """Intenta extraer un valor 0–100 desde el feedback."""
     if not texto:
         return None
     patrones = [
@@ -159,6 +211,13 @@ def extraer_score(texto):
                 pass
     return None
 
+def _rand(n=24):
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(n))
+
+# ======================
+# LLMs
+# ======================
 def analizar_con_openai(cv_text, job_desc):
     idioma = detectar_idioma(cv_text + " " + job_desc)
     idioma_respuesta = "Spanish" if idioma == "es" else "English"
@@ -191,21 +250,16 @@ Respond with:
             return None, "Sin cuota en la API de OpenAI"
         return None, "Rate limit de OpenAI"
     except openai.AuthenticationError as e:
-        print("[OpenAI AuthError]", e)
-        return None, "API key inválida o faltante"
+        print("[OpenAI AuthError]", e); return None, "API key inválida o faltante"
     except openai.PermissionDeniedError as e:
-        print("[OpenAI PermissionDenied]", e)
-        return None, "Sin acceso al modelo gpt-4o"
+        print("[OpenAI PermissionDenied]", e); return None, "Sin acceso al modelo gpt-4o"
     except openai.APIConnectionError as e:
-        print("[OpenAI APIConnectionError]", e)
-        return None, "Falla de conexión con OpenAI"
+        print("[OpenAI APIConnectionError]", e); return None, "Falla de conexión con OpenAI"
     except openai.APIStatusError as e:
-        print("[OpenAI APIStatusError]", e)
-        code = getattr(e, "status_code", "error")
+        print("[OpenAI APIStatusError]", e); code = getattr(e, "status_code", "error")
         return None, f"OpenAI devolvió {code}"
     except Exception as e:
-        print("[OpenAI UnknownError]", e)
-        return None, "Error desconocido con OpenAI"
+        print("[OpenAI UnknownError]", e); return None, "Error desconocido con OpenAI"
 
 def analizar_con_gemini(cv_text, job_desc):
     idioma = detectar_idioma(cv_text + " " + job_desc)
@@ -230,42 +284,124 @@ Respond with:
     response = model.generate_content(prompt)
     return response.text
 
+# ======================
+# Rutas de autenticación Google
+# ======================
+@app.route("/login")
+def login():
+    state = _rand()
+    nonce = _rand()
+    session["oauth_state"] = state
+    session["oauth_nonce"] = nonce
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "response_type": "code",
+        "scope": GOOGLE_SCOPES,
+        "access_type": "online",
+        "include_granted_scopes": "true",
+        "prompt": "select_account",
+        "state": state,
+        "nonce": nonce,
+    }
+    return redirect(f"{GOOGLE_AUTH_ENDPOINT}?{urlencode(params)}")
+
+@app.route("/auth/callback")
+def auth_callback():
+    if request.args.get("state") != session.get("oauth_state"):
+        return "Invalid state", 400
+
+    code = request.args.get("code")
+    if not code:
+        return "Missing code", 400
+
+    data = {
+        "code": code,
+        "client_id": GOOGLE_CLIENT_ID,
+        "client_secret": GOOGLE_CLIENT_SECRET,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "grant_type": "authorization_code",
+    }
+    tok = requests.post(GOOGLE_TOKEN_ENDPOINT, data=data, timeout=20)
+    if tok.status_code != 200:
+        return f"Token exchange failed: {tok.text}", 400
+    tokens = tok.json()
+
+    try:
+        idinfo = id_token.verify_oauth2_token(
+            tokens["id_token"],
+            grequests.Request(),
+            GOOGLE_CLIENT_ID
+        )
+        if idinfo.get("nonce") and idinfo["nonce"] != session.get("oauth_nonce"):
+            return "Invalid nonce", 400
+    except Exception as e:
+        return f"ID token invalid: {e}", 400
+
+    session["user_email"] = idinfo.get("email")
+    session["user_name"] = idinfo.get("name")
+    session["user_picture"] = idinfo.get("picture")
+
+    return redirect(url_for("scan"))
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("Sesión cerrada.")
+    return redirect(url_for("scan"))
+
+# ======================
+# Ruta principal
+# ======================
 @app.route('/', methods=['GET', 'POST'])
 def scan():
     feedback = None
-    model_used = None  # 1 = OpenAI, 2 = Gemini
+    model_used = None  # 1=OpenAI, 2=Gemini
     score = None
     oi_error = None
 
+    email = session.get("user_email")  # si está logueado con Google
+
     if request.method == 'POST':
-        cv_file = request.files['cv']
-        jobdesc = request.form['jobdesc']
+        # Si no hay login, aceptamos email manual (opcional)
+        form_email = (request.form.get('email') or "").strip().lower()
+        if email:
+            form_email = email  # prioriza el email autenticado
 
-        if cv_file and jobdesc:
-            cv_text = extract_text_from_pdf(cv_file)
+        cv_file = request.files.get('cv')
+        jobdesc = request.form.get('jobdesc', "")
 
-            # OpenAI primero
-            feedback_text, oi_error = analizar_con_openai(cv_text, jobdesc)
+        if not cv_file or not jobdesc:
+            flash("Faltan archivo y/o descripción del puesto.")
+            return redirect(url_for('scan'))
+
+        cv_text = extract_text_from_pdf(cv_file)
+
+        # Ejecutar análisis
+        feedback_text, oi_error = analizar_con_openai(cv_text, jobdesc)
+        if feedback_text:
+            model_used = 1
+        elif GEMINI_API_KEY:
+            feedback_text = analizar_con_gemini(cv_text, jobdesc)
             if feedback_text:
-                model_used = 1
-            elif GEMINI_API_KEY:
-                # Fallback a Gemini
-                feedback_text = analizar_con_gemini(cv_text, jobdesc)
-                if feedback_text:
-                    model_used = 2
+                model_used = 2
 
-            if feedback_text:
-                score = extraer_score(feedback_text)
-                feedback = markdown.markdown(feedback_text)
+        if feedback_text:
+            score = extraer_score(feedback_text)
+            feedback = markdown.markdown(feedback_text)
 
     return render_template_string(
         HTML_TEMPLATE,
         feedback=feedback,
         model_used=model_used,
         score=score,
-        oi_error=oi_error
+        oi_error=oi_error,
+        email=email or ""
     )
 
+# ======================
+# Main
+# ======================
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
