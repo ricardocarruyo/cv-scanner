@@ -6,3 +6,6 @@ markdown
 langdetect
 requests
 google-auth
+SQLAlchemy
+psycopg2-binary
+python-docx
