@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template_string, session, redirect, url_for, flash, Response
+from flask import Flask, request, render_template_string, session, redirect, url_for, flash, Response, make_response, send_file
 import os, re, io, secrets, string, requests, math, csv
 from urllib.parse import urlencode
 from datetime import datetime
@@ -6,6 +6,7 @@ from io import StringIO
 
 import fitz  # PyMuPDF
 import markdown
+import bleach
 import langdetect
 from openai import OpenAI
 import openai
@@ -13,6 +14,11 @@ import google.generativeai as genai
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
 from docx import Document  # python-docx
+
+# PDF
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import cm
 
 # --- DB (SQLAlchemy) ---
 from sqlalchemy import create_engine, Column, String, Integer, Text, DateTime, ForeignKey
@@ -28,15 +34,15 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:10000")
 FLASK_SECRET = os.getenv("FLASK_SECRET", "dev-secret-change-me")
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///usage.db")
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")  # si lo pones, ese mail ver谩 /admin y todo el historial
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")  # si lo defines, ese correo verá /admin y todo el historial
 
 ALLOWED_EXTS = {"pdf", "docx"}
 MAX_MB = 10
 
 # ======================
-# Flask app & security
+# Flask app & seguridad
 # ======================
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static")
 app.secret_key = FLASK_SECRET
 app.config.update(
     SESSION_COOKIE_SECURE=True,
@@ -74,6 +80,12 @@ class User(Base):
     occupation = Column(String(200))
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     last_login_at = Column(DateTime)
+    # último análisis
+    last_model_vendor = Column(String(20))
+    last_model_name = Column(String(50))
+    last_score = Column(Integer)
+    last_exec_id = Column(Integer)
+    last_analysis_at = Column(DateTime)
 
     executions = relationship("Execution", back_populates="user")
     comments = relationship("Comment", back_populates="user")
@@ -90,6 +102,7 @@ class Execution(Base):
     model_vendor = Column(String(20))   # "openai" | "gemini"
     model_name = Column(String(50))     # "gpt-4o" | "gemini-1.5-flash"
     score = Column(Integer)
+    feedback_text = Column(Text)        # guardamos el feedback para exportar PDF
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     user = relationship("User", back_populates="executions")
 
@@ -114,7 +127,13 @@ HTML_TEMPLATE = """
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CV Match Scanner</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
+  <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <style>
     .gauge-wrap { position: relative; width: 100%; max-width: 460px; margin: 0 auto; aspect-ratio: 2 / 1; }
     .gauge { width: 100%; height: 100%; }
@@ -136,62 +155,64 @@ HTML_TEMPLATE = """
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div class="d-flex align-items-center gap-2">
       <h1 class="mb-0">CV Match Scanner</h1>
-      <a class="btn btn-sm btn-outline-dark" target="_blank" href="https://youtu.be/4icmc4kkPEY">馃帴 Tutorial ATS</a>
+      <a class="btn btn-sm btn-outline-dark" target="_blank" href="https://youtu.be/4icmc4kkPEY">
+        <i class="bi bi-play-circle"></i> Tutorial ATS
+      </a>
     </div>
     <div class="text-end">
       {% if email %}
         <div class="d-flex align-items-center justify-content-end gap-2">
           {% if picture %}<img class="avatar" src="{{ picture }}" alt="avatar"/>{% endif %}
           <span><strong>{{ name or email }}</strong></span>
-          {% if is_admin %}<a class="btn btn-sm btn-outline-dark" href="{{ url_for('admin') }}">Admin</a>{% endif %}
-          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('history') }}">Historial</a>
-          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('logout') }}">Logout</a>
+          {% if is_admin %}<a class="btn btn-sm btn-outline-dark" href="{{ url_for('admin') }}"><i class="bi bi-speedometer2"></i> Admin</a>{% endif %}
+          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('history') }}"><i class="bi bi-clock-history"></i> Historial</a>
+          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Cerrar sesión</a>
         </div>
       {% else %}
-        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('login') }}">Login con Google</a>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('login') }}"><i class="bi bi-google"></i> Iniciar sesión con Google</a>
       {% endif %}
     </div>
   </div>
 
   <div class="row g-4">
-    <!-- Izquierda: Form -->
+    <!-- Izquierda: Formulario -->
     <div class="col-12 col-lg-6">
       <div class="card p-4 shadow-sm h-100">
         <form method="post" enctype="multipart/form-data">
           {% if not email %}
           <div class="mb-3">
-            <label class="form-label">Email (si no iniciaste sesi贸n):</label>
+            <label class="form-label">Correo electrónico (si no iniciaste sesión):</label>
             <input type="email" class="form-control" name="email" placeholder="tu@email.com">
           </div>
           {% endif %}
 
           <div class="mb-3">
-            <label class="form-label">Ocupaci贸n (opcional):</label>
-            <input type="text" class="form-control" name="occupation" placeholder="Ej: Business Analyst, QA, DevOps" value="{{ occupation or '' }}">
+            <label class="form-label">Ocupación (opcional):</label>
+            <input type="text" class="form-control" name="occupation" placeholder="Ej.: Analista de Negocio, QA, DevOps" value="{{ occupation or '' }}">
           </div>
 
           <div class="mb-2">
-            <label class="form-label">Sub铆 tu CV (PDF o DOCX, m谩x {{ max_mb }} MB):</label>
+            <label class="form-label">Sube tu CV (PDF o DOCX, máx. {{ max_mb }} MB):</label>
             <input type="file" class="form-control" name="cv" accept=".pdf,.docx" required>
-            <div class="form-text">Por seguridad, solo permitimos PDF/DOCX y analizamos el contenido para bloquear c贸digo malicioso.</div>
+            <div class="form-text">Por seguridad, solo permitimos PDF/DOCX y analizamos el contenido para bloquear patrones potencialmente peligrosos.</div>
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Pega la descripci贸n del puesto:</label>
+            <label class="form-label">Pega la descripción del puesto:</label>
             <textarea name="jobdesc" class="form-control" rows="6" required></textarea>
           </div>
 
-          <button type="submit" class="btn btn-primary w-100">Analizar</button>
+          <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Analizar</button>
         </form>
       </div>
     </div>
 
-    <!-- Derecha: Gauge -->
+    <!-- Derecha: Tacómetro -->
     <div class="col-12 col-lg-6">
       <div class="card p-4 shadow-sm h-100 d-flex align-items-center justify-content-center">
         {% if score is not none %}
           <div class="gauge-wrap">
-            <svg class="gauge" viewBox="0 0 200 100" aria-label="Match score gauge">
+            <svg class="gauge" viewBox="0 0 200 100" aria-label="Indicador de coincidencia">
               <path d="M10,100 A90,90 0 0 1 190,100" fill="none" stroke="#eee" stroke-width="20"/>
               <defs>
                 <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -212,7 +233,7 @@ HTML_TEMPLATE = """
             <div class="score-label">{{ score }}%</div>
           </div>
         {% else %}
-          <div class="text-muted text-center">Sube tu CV y descripci贸n para ver el tac贸metro de coincidencia.</div>
+          <div class="text-muted text-center">Sube tu CV y la descripción para ver el indicador de coincidencia.</div>
         {% endif %}
       </div>
     </div>
@@ -221,15 +242,15 @@ HTML_TEMPLATE = """
   {% if feedback %}
   <div class="card mt-4 p-4 shadow-sm">
     <div class="d-flex justify-content-between align-items-center mb-2">
-      <h3 class="mb-0">AI Feedback</h3>
-      <div>
+      <h3 class="mb-0">Análisis de la IA</h3>
+      <div class="d-flex gap-2">
         {% if model_used == 1 %}
-          <span class="badge text-bg-primary model-badge">Modelo 1: OpenAI</span>
+          <span class="badge text-bg-primary model-badge"><i class="bi bi-cpu"></i> Modelo 1: OpenAI</span>
         {% elif model_used == 2 %}
-          <span class="badge text-bg-success model-badge">Modelo 2: Gemini</span>
+          <span class="badge text-bg-success model-badge"><i class="bi bi-stars"></i> Modelo 2: Gemini</span>
         {% endif %}
-        {% if model_used == 2 and oi_error %}
-          <span class="badge text-bg-secondary ms-2">{{ oi_error }}</span>
+        {% if exec_id %}
+          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('download_pdf', exec_id=exec_id) }}"><i class="bi bi-file-earmark-arrow-down"></i> Descargar PDF</a>
         {% endif %}
       </div>
     </div>
@@ -238,15 +259,15 @@ HTML_TEMPLATE = """
   {% endif %}
 
   <div class="card mt-4 p-4 shadow-sm">
-    <h4 class="mb-3">驴Sugerencias para mejorar?</h4>
+    <h4 class="mb-3"><i class="bi bi-chat-text"></i> ¿Tienes sugerencias para mejorar?</h4>
     <form method="post" action="{{ url_for('leave_comment') }}">
       <div class="mb-2">
         <label class="form-label">Tu comentario</label>
         <textarea class="form-control" name="comment" rows="3" maxlength="2000" required></textarea>
       </div>
       <div class="d-flex justify-content-between align-items-center">
-        <div class="small text-muted">Gracias por ayudarnos a mejorar 鉁?/div>
-        <button class="btn btn-outline-primary">Enviar</button>
+        <div class="small text-muted">Gracias por ayudar a mejorar el servicio</div>
+        <button class="btn btn-outline-primary"><i class="bi bi-send"></i> Enviar</button>
       </div>
     </form>
   </div>
@@ -257,7 +278,7 @@ HTML_TEMPLATE = """
 <script>
   (function() {
     var score = {{ score }};
-    var deg = Math.max(0, Math.min(100, score)) * 1.8; // 0-100 => 0-180掳
+    var deg = Math.max(0, Math.min(100, score)) * 1.8; // 0-100 => 0-180°
     var needle = document.getElementById("needle");
     if (needle) needle.style.transform = "rotate(" + deg + "deg)";
   })();
@@ -273,7 +294,7 @@ HISTORY_TEMPLATE = """
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Historial 路 CV Match Scanner</title>
+  <title>Historial · CV Match Scanner</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
@@ -291,7 +312,7 @@ HISTORY_TEMPLATE = """
 
   <div class="mb-3 text-muted">
     {% if is_admin %}
-      <span class="badge text-bg-dark">Admin</span> Viendo todas las ejecuciones y comentarios
+      <span class="badge text-bg-dark">Administrador</span> Viendo todas las ejecuciones y comentarios
     {% else %}
       Mostrando datos de <strong>{{ email }}</strong>
     {% endif %}
@@ -306,12 +327,12 @@ HISTORY_TEMPLATE = """
             <th>Fecha</th>
             <th>Archivo</th>
             <th>Ext</th>
-            <th>Tama帽o</th>
+            <th>Tamaño</th>
             <th>Modelo</th>
-            <th>Score</th>
-            <th>Res Lang</th>
-            <th>JD Lang</th>
-            {% if is_admin %}<th>Email</th>{% endif %}
+            <th>Puntaje</th>
+            <th>Idioma CV</th>
+            <th>Idioma JD</th>
+            {% if is_admin %}<th>Correo</th>{% endif %}
           </tr>
         </thead>
         <tbody>
@@ -335,7 +356,7 @@ HISTORY_TEMPLATE = """
     <nav aria-label="Ejecuciones">
       <ul class="pagination pagination-sm">
         <li class="page-item {% if page_exec<=1 %}disabled{% endif %}">
-          <a class="page-link" href="{{ url_for('history', page_exec=page_exec-1, page_cmt=page_cmt, per_page=per_page) }}">芦</a>
+          <a class="page-link" href="{{ url_for('history', page_exec=page_exec-1, page_cmt=page_cmt, per_page=per_page) }}">&laquo;</a>
         </li>
         {% for p in range(1, pages_exec+1) %}
           <li class="page-item {% if p==page_exec %}active{% endif %}">
@@ -343,7 +364,7 @@ HISTORY_TEMPLATE = """
           </li>
         {% endfor %}
         <li class="page-item {% if page_exec>=pages_exec %}disabled{% endif %}">
-          <a class="page-link" href="{{ url_for('history', page_exec=page_exec+1, page_cmt=page_cmt, per_page=per_page) }}">禄</a>
+          <a class="page-link" href="{{ url_for('history', page_exec=page_exec+1, page_cmt=page_cmt, per_page=per_page) }}">&raquo;</a>
         </li>
       </ul>
     </nav>
@@ -358,7 +379,7 @@ HISTORY_TEMPLATE = """
             <th>Fecha</th>
             <th>Nombre</th>
             <th>Comentario</th>
-            {% if is_admin %}<th>Email</th>{% endif %}
+            {% if is_admin %}<th>Correo</th>{% endif %}
           </tr>
         </thead>
         <tbody>
@@ -377,7 +398,7 @@ HISTORY_TEMPLATE = """
     <nav aria-label="Comentarios">
       <ul class="pagination pagination-sm">
         <li class="page-item {% if page_cmt<=1 %}disabled{% endif %}">
-          <a class="page-link" href="{{ url_for('history', page_exec=page_exec, page_cmt=page_cmt-1, per_page=per_page) }}">芦</a>
+          <a class="page-link" href="{{ url_for('history', page_exec=page_exec, page_cmt=page_cmt-1, per_page=per_page) }}">&laquo;</a>
         </li>
         {% for p in range(1, pages_cmt+1) %}
           <li class="page-item {% if p==page_cmt %}active{% endif %}">
@@ -385,7 +406,7 @@ HISTORY_TEMPLATE = """
           </li>
         {% endfor %}
         <li class="page-item {% if page_cmt>=pages_cmt %}disabled{% endif %}">
-          <a class="page-link" href="{{ url_for('history', page_exec=page_exec, page_cmt=page_cmt+1, per_page=per_page) }}">禄</a>
+          <a class="page-link" href="{{ url_for('history', page_exec=page_exec, page_cmt=page_cmt+1, per_page=per_page) }}">&raquo;</a>
         </li>
       </ul>
     </nav>
@@ -402,13 +423,13 @@ ADMIN_TEMPLATE = """
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin 路 CV Match Scanner</title>
+  <title>Administración · CV Match Scanner</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">Panel Admin</h2>
+    <h2 class="mb-0">Panel de administración</h2>
     <div class="d-flex gap-2">
       <a class="btn btn-outline-secondary" href="{{ url_for('scan') }}">Volver</a>
       <a class="btn btn-outline-secondary" href="{{ url_for('history') }}">Historial</a>
@@ -438,8 +459,8 @@ ADMIN_TEMPLATE = """
 
   <div class="card p-3 shadow-sm mt-4">
     <div class="d-flex justify-content-between align-items-center">
-      <h4 class="mb-0">脷ltimos comentarios</h4>
-      <form method="post" action="{{ url_for('admin_clear_comments') }}" onsubmit="return confirm('驴Seguro que quieres borrar TODOS los comentarios?');">
+      <h4 class="mb-0">Últimos comentarios</h4>
+      <form method="post" action="{{ url_for('admin_clear_comments') }}" onsubmit="return confirm('¿Seguro que deseas borrar todos los comentarios?');">
         <button class="btn btn-sm btn-danger">Vaciar comentarios</button>
       </form>
     </div>
@@ -449,7 +470,7 @@ ADMIN_TEMPLATE = """
           <tr>
             <th>Fecha</th>
             <th>Nombre</th>
-            <th>Email</th>
+            <th>Correo</th>
             <th>Comentario</th>
           </tr>
         </thead>
@@ -489,11 +510,11 @@ def extraer_score(texto):
     if not texto:
         return None
     patrones = [
-        r"(?:match\\s*score|puntuaci[o贸]n.*?(?:0.?100)?)\\D{0,20}(\\b100\\b|\\b\\d{1,2}\\b)",
-        r"(?:score|coincidencia)\\D{0,20}(\\b100\\b|\\b\\d{1,2}\\b)",
-        r"\\b(\\d{1,3})\\s*/\\s*100\\b",
-        r"\\b(\\d{1,3})\\s*%",
-        r"\\b(\\d{1,2})\\b"
+        r"(?:match\s*score|puntuaci[oó]n.*?(?:0.?100)?)\D{0,20}(\b100\b|\b\d{1,2}\b)",
+        r"(?:score|coincidencia)\D{0,20}(\b100\b|\b\d{1,2}\b)",
+        r"\b(\d{1,3})\s*/\s*100\b",
+        r"\b(\d{1,3})\s*%",
+        r"\b(\d{1,2})\b"
     ]
     for p in patrones:
         m = re.search(p, texto, flags=re.IGNORECASE)
@@ -507,16 +528,16 @@ def extraer_score(texto):
 
 def extract_text_from_pdf_bytes(b: bytes) -> str:
     doc = fitz.open(stream=b, filetype="pdf")
-    return "\\n".join([page.get_text() for page in doc])
+    return "\n".join([page.get_text() for page in doc])
 
 def extract_text_from_docx_bytes(b: bytes) -> str:
     doc = Document(io.BytesIO(b))
-    return "\\n".join([p.text for p in doc.paragraphs])
+    return "\n".join([p.text for p in doc.paragraphs])
 
 SUSPICIOUS_PATTERNS = [
-    r"<script\\b", r"</script>", r"<iframe\\b", r"onerror\\s*=", r"onload\\s*=",
-    r"document\\.cookie", r"eval\\s*\\(", r"fetch\\s*\\(", r"xmlhttprequest",
-    r"import\\s+os", r"subprocess\\.Popen", r"socket\\.", r"<?php", r"bash -c",
+    r"<script\b", r"</script>", r"<iframe\b", r"onerror\s*=", r"onload\s*=",
+    r"document\.cookie", r"eval\s*\(", r"fetch\s*\(", r"xmlhttprequest",
+    r"import\s+os", r"subprocess\.Popen", r"socket\.", r"<?php", r"bash -c",
     r"powershell", r"base64,", r"rm -rf /"
 ]
 
@@ -533,7 +554,7 @@ def allowed_file(filename: str) -> bool:
 
 def _require_login():
     if not session.get("user_email"):
-        flash("Inicia sesi贸n para continuar.")
+        flash("Inicia sesión para continuar.")
         return False
     return True
 
@@ -564,7 +585,7 @@ Job Description:
 {job_desc}
 
 Respond with:
-1. A match score (0鈥?00).
+1. A match score (0–100).
 2. Key skills or qualifications missing.
 3. Suggestions for improving the resume to better fit the role.
 """
@@ -593,7 +614,7 @@ Job Description:
 {job_desc}
 
 Respond with:
-1. A match score (0鈥?00).
+1. A match score (0–100).
 2. Key skills or qualifications missing.
 3. Suggestions for improving the resume to better fit the role.
 """
@@ -602,7 +623,7 @@ Respond with:
     return response.text
 
 # ======================
-# Auth Google
+# Autenticación Google
 # ======================
 @app.route("/login")
 def login():
@@ -680,7 +701,7 @@ def auth_callback():
 @app.route("/logout")
 def logout():
     session.clear()
-    flash("Sesi贸n cerrada.")
+    flash("Sesión cerrada.")
     return redirect(url_for("scan"))
 
 # ======================
@@ -692,6 +713,7 @@ def scan():
     model_used = None
     score = None
     oi_error = None
+    exec_id = None
 
     email = session.get("user_email")
     name = session.get("user_name")
@@ -703,7 +725,7 @@ def scan():
         form_email = (request.form.get('email') or "").strip().lower()
         if email:
             if form_email and form_email != email:
-                return "No puedes usar un email distinto al de tu sesi贸n de Google.", 400
+                return "No puedes usar un correo distinto al de tu sesión de Google.", 400
             form_email = email
 
         occ = (request.form.get('occupation') or "").strip()[:200]
@@ -712,7 +734,7 @@ def scan():
         jobdesc = request.form.get('jobdesc', "")
 
         if not file or not jobdesc:
-            flash("Faltan archivo y/o descripci贸n del puesto.")
+            flash("Faltan el archivo y/o la descripción del puesto.")
             return redirect(url_for('scan'))
 
         filename = file.filename or ""
@@ -733,7 +755,7 @@ def scan():
             else:
                 cv_text = extract_text_from_docx_bytes(data)
         except Exception:
-            flash("No se pudo leer el archivo. Aseg煤rate de que el PDF/DOCX no est茅 da帽ado.")
+            flash("No se pudo leer el archivo. Asegúrate de que el PDF/DOCX no esté dañado.")
             return redirect(url_for('scan'))
 
         sample = (cv_text[:100000] or "")
@@ -741,7 +763,7 @@ def scan():
             flash("Detectamos contenido potencialmente peligroso en el archivo. Por seguridad, no podemos procesarlo.")
             return redirect(url_for('scan'))
 
-        feedback_text, oi_error = analizar_con_openai(cv_text, jobdesc)
+        feedback_text, oi_error = analizar_con_openai(cv_text, job_desc=jobdesc)
         if feedback_text:
             model_used = 1
             model_vendor, model_name = "openai", "gpt-4o"
@@ -755,7 +777,15 @@ def scan():
 
         if feedback_text:
             score = extraer_score(feedback_text)
-            feedback = markdown.markdown(feedback_text)
+            # Markdown -> HTML + sanitización con bleach
+            allowed_tags = [
+                "p","ul","ol","li","strong","em","b","i","br","hr","blockquote","code","pre",
+                "h1","h2","h3","h4","h5","h6","a","table","thead","tbody","tr","th","td"
+            ]
+            allowed_attrs = {"a": ["href","title","rel","target"]}
+            raw_html = markdown.markdown(feedback_text, extensions=["nl2br"])
+            safe_html = bleach.clean(raw_html, tags=allowed_tags, attributes=allowed_attrs, strip=True)
+            feedback = safe_html
 
         # Guardar en DB
         db = SessionLocal()
@@ -784,10 +814,22 @@ def scan():
                     model_vendor=(model_vendor if feedback_text else None),
                     model_name=(model_name if feedback_text else None),
                     score=(score if score is not None else None),
+                    feedback_text=feedback_text or None,
                     created_at=datetime.utcnow()
                 )
                 db.add(ex)
                 db.commit()
+                exec_id = ex.id
+
+                # actualizar último análisis del usuario
+                u = db.get(User, form_email)
+                if u:
+                    u.last_model_vendor = ex.model_vendor
+                    u.last_model_name = ex.model_name
+                    u.last_score = ex.score
+                    u.last_exec_id = ex.id
+                    u.last_analysis_at = ex.created_at
+                    db.commit()
         finally:
             db.close()
 
@@ -800,7 +842,7 @@ def scan():
         finally:
             db.close()
 
-    return render_template_string(
+    html = render_template_string(
         HTML_TEMPLATE,
         feedback=feedback,
         model_used=model_used,
@@ -811,14 +853,18 @@ def scan():
         picture=picture or "",
         occupation=occupation_value or "",
         max_mb=MAX_MB,
-        is_admin=is_admin
+        is_admin=is_admin,
+        exec_id=exec_id
     )
+    resp = make_response(html)
+    resp.headers["Content-Type"] = "text/html; charset=utf-8"
+    return resp
 
 @app.route('/feedback', methods=['POST'])
 def leave_comment():
     text = (request.form.get('comment') or "").strip()
     if not text:
-        flash("El comentario est谩 vac铆o.")
+        flash("El comentario está vacío.")
         return redirect(url_for('scan'))
 
     email = session.get("user_email")
@@ -837,7 +883,7 @@ def leave_comment():
     finally:
         db.close()
 
-    flash("隆Gracias por tu comentario!")
+    flash("Gracias por tu comentario.")
     return redirect(url_for('scan'))
 
 # ======================
@@ -873,7 +919,7 @@ def history():
         pages_exec = max(1, math.ceil(total_exec / per_page)) if total_exec else 1
         pages_cmt  = max(1, math.ceil(total_cmt / per_page)) if total_cmt else 1
 
-        return render_template_string(
+        html = render_template_string(
             HISTORY_TEMPLATE,
             email=viewer,
             is_admin=is_admin,
@@ -885,6 +931,9 @@ def history():
             pages_cmt=pages_cmt,
             per_page=per_page
         )
+        resp = make_response(html)
+        resp.headers["Content-Type"] = "text/html; charset=utf-8"
+        return resp
     finally:
         db.close()
 
@@ -910,7 +959,7 @@ def export_history():
                 q = q.filter(Comment.email == viewer)
             w.writerow(["created_at", "name", "email", "text"])
             for c in q.all():
-                w.writerow([c.created_at.isoformat(), c.name or "", c.email or "", (c.text or "").replace("\\n", " ")])
+                w.writerow([c.created_at.isoformat(), c.name or "", c.email or "", (c.text or "").replace("\n", " ")])
             filename = f"comments_{'all' if is_admin else viewer}_{now}.csv"
         else:
             q = db.query(Execution).order_by(Execution.created_at.desc())
@@ -935,14 +984,101 @@ def export_history():
         out = si.getvalue()
         return Response(
             out,
-            mimetype="text/csv",
+            mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
     finally:
         db.close()
 
 # ======================
-# Admin
+# Descarga PDF
+# ======================
+def _wrap_text(c, text, max_width):
+    words = text.split()
+    lines, current = [], ""
+    for w in words:
+        test = (current + " " + w).strip()
+        if c.stringWidth(test, "Helvetica", 11) <= max_width:
+            current = test
+        else:
+            if current:
+                lines.append(current)
+            current = w
+    if current:
+        lines.append(current)
+    return lines
+
+@app.route("/download-pdf/<int:exec_id>")
+def download_pdf(exec_id):
+    if not _require_login():
+        return redirect(url_for("scan"))
+    viewer = session.get("user_email")
+    is_admin = (ADMIN_EMAIL and viewer.lower() == ADMIN_EMAIL.lower())
+
+    db = SessionLocal()
+    try:
+        ex = db.query(Execution).filter(Execution.id == exec_id).first()
+        if not ex:
+            flash("No se encontró el análisis.")
+            return redirect(url_for("scan"))
+        if not is_admin and ex.email != viewer:
+            flash("No tienes acceso a este análisis.")
+            return redirect(url_for("scan"))
+
+        buffer = io.BytesIO()
+        c = canvas.Canvas(buffer, pagesize=A4)
+        width, height = A4
+        left, right = 2*cm, A4[0] - 2*cm
+        y = height - 2*cm
+
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(left, y, "Informe de Análisis (CV Match Scanner)")
+        y -= 18
+
+        c.setFont("Helvetica", 11)
+        meta = [
+            f"Fecha: {ex.created_at.strftime('%Y-%m-%d %H:%M')}",
+            f"Correo: {ex.email}",
+            f"Archivo: {ex.uploaded_filename or '-'}",
+            f"Modelo: {(ex.model_vendor or '-')}/{(ex.model_name or '-')}",
+            f"Puntaje: {ex.score if ex.score is not None else '-'}",
+            f"Idioma CV: {ex.resume_lang or '-'} | Idioma JD: {ex.jd_lang or '-'}",
+        ]
+        for m in meta:
+            c.drawString(left, y, m)
+            y -= 14
+
+        y -= 6
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(left, y, "Análisis:")
+        y -= 16
+
+        c.setFont("Helvetica", 11)
+        text = ex.feedback_text or "(Sin contenido)"
+        text = re.sub(r"<[^>]+>", "", text).replace("\r", "")
+        max_width = right - left
+        for para in text.split("\n"):
+            if not para.strip():
+                y -= 10
+                continue
+            lines = _wrap_text(c, para, max_width)
+            for line in lines:
+                if y < 2*cm:
+                    c.showPage()
+                    y = height - 2*cm
+                    c.setFont("Helvetica", 11)
+                c.drawString(left, y, line)
+                y -= 14
+
+        c.showPage()
+        c.save()
+        buffer.seek(0)
+        return send_file(buffer, as_attachment=True, download_name=f"analisis_{ex.id}.pdf", mimetype="application/pdf")
+    finally:
+        db.close()
+
+# ======================
+# Administración
 # ======================
 @app.route("/admin")
 def admin():
@@ -956,13 +1092,16 @@ def admin():
         comments_count = db.query(Comment).count()
         recent_comments = db.query(Comment).order_by(Comment.created_at.desc()).limit(20).all()
 
-        return render_template_string(
+        html = render_template_string(
             ADMIN_TEMPLATE,
             users_count=users_count,
             execs_count=execs_count,
             comments_count=comments_count,
             recent_comments=recent_comments
         )
+        resp = make_response(html)
+        resp.headers["Content-Type"] = "text/html; charset=utf-8"
+        return resp
     finally:
         db.close()
 

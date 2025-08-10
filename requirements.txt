@@ -3,9 +3,11 @@ pymupdf
 openai>=1.40.0
 google-generativeai
 markdown
+bleach
 langdetect
 requests
 google-auth
 SQLAlchemy
 psycopg2-binary
 python-docx
+reportlab
