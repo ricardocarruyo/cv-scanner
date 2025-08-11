@@ -23,6 +23,7 @@ from reportlab.lib.units import cm
 # --- DB (SQLAlchemy) ---
 from sqlalchemy import create_engine, Column, String, Integer, Text, DateTime, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+from sqlalchemy import asc, desc  
 
 # ======================
 # ENV / Config
@@ -178,32 +179,31 @@ HTML_TEMPLATE = """
     <!-- Izquierda: Formulario -->
     <div class="col-12 col-lg-6">
       <div class="card p-4 shadow-sm h-100">
-        <form method="post" enctype="multipart/form-data">
-          {% if not email %}
-          <div class="mb-3">
-            <label class="form-label">Correo electrónico (si no iniciaste sesión):</label>
-            <input type="email" class="form-control" name="email" placeholder="tu@email.com">
+        {% if not email %}
+          <div class="text-center">
+            <p class="mb-3">Para usar el analizador, primero inicia sesión con Google.</p>
+            <a class="btn btn-outline-primary" href="{{ url_for('login') }}">
+              <i class="bi bi-google"></i> Iniciar sesión con Google
+            </a>
           </div>
-          {% endif %}
-
-          <div class="mb-3">
-            <label class="form-label">Ocupación (opcional):</label>
-            <input type="text" class="form-control" name="occupation" placeholder="Ej.: Analista de Negocio, QA, DevOps" value="{{ occupation or '' }}">
-          </div>
-
-          <div class="mb-2">
-            <label class="form-label">Sube tu CV (PDF o DOCX, máx. {{ max_mb }} MB):</label>
-            <input type="file" class="form-control" name="cv" accept=".pdf,.docx" required>
-            <div class="form-text">Por seguridad, solo permitimos PDF/DOCX y analizamos el contenido para bloquear patrones potencialmente peligrosos.</div>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">Pega la descripción del puesto:</label>
-            <textarea name="jobdesc" class="form-control" rows="6" required></textarea>
-          </div>
-
-          <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Analizar</button>
-        </form>
+        {% else %}
+          <form method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label class="form-label">Ocupación (opcional):</label>
+              <input type="text" class="form-control" name="occupation" placeholder="Ej.: Analista de Negocio, QA, DevOps" value="{{ occupation or '' }}">
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Sube tu CV (PDF o DOCX, máx. {{ max_mb }} MB):</label>
+              <input type="file" class="form-control" name="cv" accept=".pdf,.docx" required>
+              <div class="form-text">Solo PDF/DOCX. Realizamos controles de seguridad básicos.</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Pega la descripción del puesto:</label>
+              <textarea name="jobdesc" class="form-control" rows="6" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Analizar</button>
+          </form>
+        {% endif %}
       </div>
     </div>
 
@@ -714,12 +714,17 @@ def scan():
     score = None
     oi_error = None
     exec_id = None
+    occupation_value = None
 
     email = session.get("user_email")
     name = session.get("user_name")
     picture = session.get("user_picture")
-    occupation_value = None
     is_admin = bool(ADMIN_EMAIL and email and email.lower() == (ADMIN_EMAIL or "").lower())
+
+    # si intenta POST y no está logueado -> fuera
+    if request.method == 'POST' and not email:
+        flash("Inicia sesión para analizar tu CV.")
+        return redirect(url_for('login'))
 
     if request.method == 'POST':
         form_email = (request.form.get('email') or "").strip().lower()
@@ -862,18 +867,34 @@ def scan():
 
 @app.route('/feedback', methods=['POST'])
 def leave_comment():
+    # bloquear si no hay sesión
+    if not session.get("user_email"):
+        flash("Inicia sesión para enviar sugerencias.")
+        return redirect(url_for('login'))
+
     text = (request.form.get('comment') or "").strip()
     if not text:
-        flash("El comentario está vacío.")
         return redirect(url_for('scan'))
 
     email = session.get("user_email")
-    name = session.get("user_name")
+    name  = session.get("user_name")
 
     db = SessionLocal()
     try:
+        # límite rodante: máximo 5 por usuario -> borro el más antiguo si ya tiene 5
+        count = db.query(Comment).filter(Comment.email == email).count()
+        if count >= 5:
+            oldest = (
+                db.query(Comment)
+                  .filter(Comment.email == email)
+                  .order_by(asc(Comment.created_at))
+                  .first()
+            )
+            if oldest:
+                db.delete(oldest)
+
         c = Comment(
-            email=email if email else None,
+            email=email,
             name=name if name else None,
             text=text[:2000],
             created_at=datetime.utcnow()
@@ -883,7 +904,6 @@ def leave_comment():
     finally:
         db.close()
 
-    flash("Gracias por tu comentario.")
     return redirect(url_for('scan'))
 
 # ======================
