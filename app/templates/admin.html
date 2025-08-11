@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Administración · CV Match Scanner{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">Panel de administración</h2>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary" href="{{ url_for('main.index') }}">Volver</a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('history.history') }}">Historial</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card p-3 shadow-sm">
+      <div class="text-muted">Usuarios totales</div>
+      <div class="h3 mb-0">{{ users_count }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-3 shadow-sm">
+      <div class="text-muted">Ejecuciones totales</div>
+      <div class="h3 mb-0">{{ execs_count }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-3 shadow-sm">
+      <div class="text-muted">Comentarios totales</div>
+      <div class="h3 mb-0">{{ comments_count }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card p-3 shadow-sm mt-4">
+  <div class="d-flex justify-content-between align-items-center">
+    <h4 class="mb-0">Últimos comentarios</h4>
+    <form method="post" action="{{ url_for('admin.clear_comments') }}" onsubmit="return confirm('¿Seguro que deseas borrar todos los comentarios?');">
+      <button class="btn btn-sm btn-danger">Vaciar comentarios</button>
+    </form>
+  </div>
+  <div class="table-responsive mt-3">
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Nombre</th>
+          <th>Correo</th>
+          <th>Comentario</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in recent_comments %}
+        <tr>
+          <td>{{ c.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ c.name or '-' }}</td>
+          <td>{{ c.email or '-' }}</td>
+          <td style="max-width:600px">{{ c.text }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

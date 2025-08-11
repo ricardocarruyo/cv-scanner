@@ -1,6 +1,43 @@
 services:
   - type: web
-    name: cv-scanner
+    name: cvmatchscanner
     env: python
-    buildCommand: ""
-    startCommand: python app.py
+    region: oregon   # cambia si prefieres otra región
+    plan: starter    # "free" para pruebas, "starter" recomendado
+    autoDeploy: true
+
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+
+    startCommand: >
+      gunicorn wsgi:app
+      --bind 0.0.0.0:$PORT
+      --workers 2
+      --threads 8
+      --timeout 120
+
+    healthCheckPath: /
+    envVars:
+      - key: DATABASE_URL
+        # Déjalo vacío aquí y configúralo en el dashboard (Internal DB URL de tu Postgres de Render)
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: APP_BASE_URL
+        # Ej.: https://cvmatchscanner.com (tu dominio final con https)
+        sync: false
+      - key: FLASK_SECRET
+        # Pon un string largo aleatorio
+        sync: false
+      - key: ADMIN_EMAIL
+        # (opcional) correo del admin que podrá ver /admin
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11

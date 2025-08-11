@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Historial · CV Match Scanner{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">Historial</h2>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary" href="{{ url_for('main.index') }}">Volver</a>
+    <div class="btn-group">
+      <a class="btn btn-outline-success" href="{{ url_for('history.export_history', kind='executions') }}">Exportar ejecuciones (CSV)</a>
+      <a class="btn btn-outline-success" href="{{ url_for('history.export_history', kind='comments') }}">Exportar comentarios (CSV)</a>
+    </div>
+  </div>
+</div>
+
+<div class="mb-3 text-muted">
+  {% if is_admin %}
+    <span class="badge text-bg-dark">Administrador</span> Viendo todas las ejecuciones y comentarios
+  {% else %}
+    Mostrando datos de <strong>{{ email }}</strong>
+  {% endif %}
+</div>
+
+<div class="card p-3 shadow-sm mb-4">
+  <h4>Ejecuciones</h4>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Archivo</th>
+          <th>Ext</th>
+          <th>Tamaño</th>
+          <th>Modelo</th>
+          <th>Puntaje</th>
+          <th>Idioma CV</th>
+          <th>Idioma JD</th>
+          {% if is_admin %}<th>Correo</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in executions %}
+        <tr>
+          <td>{{ e.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ e.uploaded_filename or '-' }}</td>
+          <td>{{ e.uploaded_ext or '-' }}</td>
+          <td>{{ (e.uploaded_size or 0) // 1024 }} KB</td>
+          <td>{{ (e.model_vendor or '-') ~ ' / ' ~ (e.model_name or '-') }}</td>
+          <td>{{ e.score if e.score is not none else '-' }}</td>
+          <td>{{ e.resume_lang or '-' }}</td>
+          <td>{{ e.jd_lang or '-' }}</td>
+          {% if is_admin %}<td>{{ e.email }}</td>{% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <nav aria-label="Ejecuciones">
+    <ul class="pagination pagination-sm">
+      <li class="page-item {% if page_exec<=1 %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('history.history', page_exec=page_exec-1, page_cmt=page_cmt, per_page=per_page) }}">&laquo;</a>
+      </li>
+      {% for p in range(1, pages_exec+1) %}
+        <li class="page-item {% if p==page_exec %}active{% endif %}">
+          <a class="page-link" href="{{ url_for('history.history', page_exec=p, page_cmt=page_cmt, per_page=per_page) }}">{{ p }}</a>
+        </li>
+      {% endfor %}
+      <li class="page-item {% if page_exec>=pages_exec %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('history.history', page_exec=page_exec+1, page_cmt=page_cmt, per_page=per_page) }}">&raquo;</a>
+      </li>
+    </ul>
+  </nav>
+</div>
+
+<div class="card p-3 shadow-sm">
+  <h4>Comentarios</h4>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Nombre</th>
+          <th>Comentario</th>
+          {% if is_admin %}<th>Correo</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in comments %}
+        <tr>
+          <td>{{ c.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ c.name or '-' }}</td>
+          <td style="max-width:600px">{{ c.text }}</td>
+          {% if is_admin %}<td>{{ c.email or '-' }}</td>{% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <nav aria-label="Comentarios">
+    <ul class="pagination pagination-sm">
+      <li class="page-item {% if page_cmt<=1 %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('history.history', page_exec=page_exec, page_cmt=page_cmt-1, per_page=per_page) }}">&laquo;</a>
+      </li>
+      {% for p in range(1, pages_cmt+1) %}
+        <li class="page-item {% if p==page_cmt %}active{% endif %}">
+          <a class="page-link" href="{{ url_for('history.history', page_exec=page_exec, page_cmt=p, per_page=per_page) }}">{{ p }}</a>
+        </li>
+      {% endfor %}
+      <li class="page-item {% if page_cmt>=pages_cmt %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('history.history', page_exec=page_exec, page_cmt=page_cmt+1, per_page=per_page) }}">&raquo;</a>
+      </li>
+    </ul>
+  </nav>
+</div>
+{% endblock %}
