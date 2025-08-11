@@ -8,11 +8,20 @@ import markdown
 from ..models import User, Execution, Comment   # <-- agrega Comment
 from sqlalchemy import asc                      # <-- agrega asc
 from datetime import datetime                   # <-- para timestamps
+from flask import send_from_directory, current_app
 
 
 bp = Blueprint("main", __name__)
 
 MAX_MB = 10
+
+@bp.route("/favicon.ico")
+def favicon():
+    return send_from_directory(
+        current_app.static_folder,
+        "favicon.ico",
+        mimetype="image/vnd.microsoft.icon"
+    )
 
 @bp.route("/", methods=["GET", "POST"])
 def index():
@@ -67,7 +76,7 @@ def index():
         score = extraer_score(feedback_text) if feedback_text else None
 
         # Persistencia
-        u = db.get(User, email)
+        u = db.session.get(User, email)
         if not u:
             u = User(email=email)
             db.session.add(u)
