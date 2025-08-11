@@ -5,6 +5,7 @@ from .routes.main import bp as main_bp
 from .routes.auth import bp as auth_bp
 from .routes.history import bp as history_bp
 from .routes.admin import bp as admin_bp
+from datetime import datetime
 
 def create_app():
     app = Flask(__name__, static_folder="static")
