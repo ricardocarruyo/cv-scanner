@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Inicio · CV Match Scanner{% endblock %}
+
+{% block extra_head %}
+<style>
+  .gauge-wrap { position: relative; width: 100%; max-width: 460px; margin: 0 auto; aspect-ratio: 2 / 1; }
+  .gauge { width: 100%; height: 100%; }
+  .needle { transform-origin: 50% 100%; transition: transform 0.8s ease-in-out; }
+  .score-label { position: absolute; bottom: 8%; left: 50%; transform: translateX(-50%); font-size: 1.75rem; font-weight: 700; }
+  .model-badge { font-size: .9rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <!-- Formulario -->
+  <div class="col-12 col-lg-6">
+    <div class="card p-4 shadow-sm h-100">
+      {% if not session.get('user_email') %}
+        <div class="text-center">
+          <p class="mb-3">Para usar el analizador, primero inicia sesión con Google.</p>
+          <a class="btn btn-outline-primary" href="{{ url_for('auth.login') }}">
+            <i class="bi bi-google"></i> Iniciar sesión con Google
+          </a>
+        </div>
+      {% else %}
+        <form method="post" enctype="multipart/form-data" action="{{ url_for('main.index') }}">
+          <div class="mb-3">
+            <label class="form-label">Ocupación (opcional):</label>
+            <input type="text" class="form-control" name="occupation" placeholder="Ej.: Analista de Negocio, QA, DevOps" value="{{ occupation or '' }}">
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label">Sube tu CV (PDF o DOCX, máx. {{ max_mb or 10 }} MB):</label>
+            <input type="file" class="form-control" name="cv" accept=".pdf,.docx" required>
+            <div class="form-text">Solo PDF/DOCX. Realizamos controles básicos de seguridad.</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Pega la descripción del puesto:</label>
+            <textarea name="jobdesc" class="form-control" rows="6" required></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Analizar</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Tacómetro -->
+  <div class="col-12 col-lg-6">
+    <div class="card p-4 shadow-sm h-100 d-flex align-items-center justify-content-center">
+      {% if score is not none %}
+        <div class="gauge-wrap">
+          <svg class="gauge" viewBox="0 0 200 100" aria-label="Indicador de coincidencia">
+            <path d="M10,100 A90,90 0 0 1 190,100" fill="none" stroke="#eee" stroke-width="20"/>
+            <defs>
+              <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#dc3545"/>
+                <stop offset="50%" stop-color="#ffc107"/>
+                <stop offset="100%" stop-color="#28a745"/>
+              </linearGradient>
+            </defs>
+            <path d="M10,100 A90,90 0 0 1 190,100" fill="none" stroke="url(#g)" stroke-width="20" stroke-linecap="round"/>
+            <g id="needle" class="needle">
+              <polygon points="100,96 97,100 103,100" fill="#333"/>
+              <rect x="99" y="10" width="2" height="90" fill="#333"/>
+              <circle cx="100" cy="100" r="4" fill="#333"/>
+            </g>
+            <text x="10" y="98" font-size="10" fill="#6c757d">0</text>
+            <text x="185" y="98" font-size="10" fill="#6c757d">100</text>
+          </svg>
+          <div class="score-label">{{ score }}%</div>
+        </div>
+      {% else %}
+        <div class="text-muted text-center">Sube tu CV y la descripción para ver el indicador de coincidencia.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Resultado del análisis -->
+{% if feedback %}
+  <div class="card mt-4 p-4 shadow-sm">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h3 class="mb-0">Análisis de la IA</h3>
+      <div class="d-flex gap-2">
+        {% if model_used == 1 %}
+          <span class="badge text-bg-primary model-badge"><i class="bi bi-cpu"></i> Modelo 1: OpenAI</span>
+        {% elif model_used == 2 %}
+          <span class="badge text-bg-success model-badge"><i class="bi bi-stars"></i> Modelo 2: Gemini</span>
+        {% endif %}
+        {% if exec_id %}
+          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('history.download_pdf', exec_id=exec_id) }}"><i class="bi bi-file-earmark-arrow-down"></i> Descargar PDF</a>
+        {% endif %}
+      </div>
+    </div>
+    <div>{{ feedback|safe }}</div>
+  </div>
+{% endif %}
+
+<!-- Sugerencias (solo con sesión) -->
+{% if session.get('user_email') %}
+  <div class="card mt-4 p-4 shadow-sm">
+    <h4 class="mb-3"><i class="bi bi-chat-text"></i> ¿Tienes sugerencias para mejorar?</h4>
+    <form method="post" action="{{ url_for('main.leave_comment') }}">
+      <div class="mb-2">
+        <label class="form-label">Tu comentario</label>
+        <textarea class="form-control" name="comment" rows="3" maxlength="2000" required></textarea>
+      </div>
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="small text-muted">Gracias por ayudar a mejorar el servicio.</div>
+        <button class="btn btn-outline-primary"><i class="bi bi-send"></i> Enviar</button>
+      </div>
+    </form>
+  </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  // Tomamos score como string seguro: "" si no viene, None, etc.
+  var s = "{{ score|default('', true) }}";
+  if (!s) return; // nada que hacer si está vacío
+
+  var score = parseInt(s, 10);
+  if (isNaN(score)) return;
+
+  // 0–100 -> 0–180
+  var deg = Math.max(0, Math.min(100, score)) * 1.8;
+  var needle = document.getElementById("needle");
+  if (needle) {
+    needle.style.transform = "rotate(" + deg + "deg)";
+  }
+})();
+</script>
+{% endblock %}
+
+
+
+

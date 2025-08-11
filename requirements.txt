@@ -1,4 +1,5 @@
 Flask
+Flask-SQLAlchemy
 pymupdf
 openai>=1.40.0
 google-generativeai
@@ -11,3 +12,4 @@ SQLAlchemy
 psycopg2-binary
 python-docx
 reportlab
+gunicorn

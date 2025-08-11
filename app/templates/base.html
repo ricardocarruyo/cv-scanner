@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}CV Match Scanner{% endblock %}</title>
+
+  <!-- Favicons -->
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
+  <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
+  <!-- Styles -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+  <style>
+    body { background-color: #f8f9fa; padding-top: 4.5rem; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+    footer { background: #fff; border-top: 1px solid #dee2e6; padding: 1rem 0; margin-top: 2rem; }
+  </style>
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="{{ url_for('main.index') }}">
+        <i class="bi bi-file-earmark-text"></i> CV Match Scanner
+      </a>
+      <div class="d-flex align-items-center">
+        <a class="btn btn-sm btn-outline-dark me-2" target="_blank" href="https://youtu.be/4icmc4kkPEY" rel="noopener">
+          <i class="bi bi-play-circle"></i> Tutorial ATS
+        </a>
+        {% if session.get('user_email') %}
+          {% if session.get('user_picture') %}
+            <img class="avatar me-2" src="{{ session.get('user_picture') }}" alt="avatar">
+          {% endif %}
+          <span class="me-3 d-none d-md-inline">{{ session.get('user_name') or session.get('user_email') }}</span>
+          <a class="btn btn-sm btn-outline-secondary me-2" href="{{ url_for('history.history') }}"><i class="bi bi-clock-history"></i> Historial</a>
+          {% if config.get('ADMIN_EMAIL') and session.get('user_email') and session.get('user_email')|lower == config.get('ADMIN_EMAIL')|lower %}
+            <a class="btn btn-sm btn-outline-dark me-2" href="{{ url_for('admin.panel') }}"><i class="bi bi-speedometer2"></i> Admin</a>
+          {% endif %}
+          <a class="btn btn-sm btn-outline-danger" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right"></i></a>
+        {% else %}
+          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('auth.login') }}"><i class="bi bi-google"></i> Iniciar sesión</a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+  <!-- Contenido -->
+  <main class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ 'info' if cat=='message' else cat }} alert-dismissible fade show mt-3" role="alert">
+            {{ msg }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container text-center small text-muted">
+      &copy; {{ current_year }} CV Match Scanner · Desarrollado por Ricardo Carruyo
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>
