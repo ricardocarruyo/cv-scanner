@@ -142,8 +142,9 @@ def index():
                 "index.html",
                 email=email, name=name, picture=picture,
                 feedback=feedback_html,
-                score_jd=score_jd,        # <<<
-                score_ats=score_ats,      # <<<
+                score_jd=score_jd,        
+                score_ats=score_ats,
+                ats_details=ats_details,      
                 model_used=model_used,
                 exec_id=ex.id,
                 max_mb=MAX_MB
@@ -159,6 +160,7 @@ def index():
                            email=email, name=name, picture=picture,
                            feedback=None,
                            score_jd=None, score_ats=None,
+                           ats_details=None,
                            model_used=None, exec_id=None,
                            max_mb=MAX_MB)
 

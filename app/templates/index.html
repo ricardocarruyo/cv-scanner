@@ -31,6 +31,8 @@
     background:
       radial-gradient(circle at center, #fff 0 58%, transparent 59%);
   }  
+
+  .donut { cursor: help; }
 </style>
 {% endblock %}
 
@@ -85,11 +87,36 @@
       {% if score_jd is not none and score_ats is not none %}
         <div class="row w-100 text-center">
           <div class="col-6 mb-3">
-            <div class="donut" data-score="{{ score_jd|int }}"></div>
+            <div
+              class="donut"
+              data-score="{{ score_jd|int }}"
+              data-bs-toggle="tooltip"
+              data-bs-html="true"
+              title="
+                <strong>Coincidencia con la Job Description</strong><br>
+                Compara tu CV con la descripción del puesto usando
+                {% if model_used == 1 %}OpenAI GPT-4o{% elif model_used == 2 %}Gemini 1.5 Flash{% else %}el modelo seleccionado{% endif %}.<br>
+                <em>Consejo:</em> apunta a ≥ 70%.
+              ">
+            </div>
             <div class="fw-semibold mt-2">Coincidencia JD</div>
           </div>
+
           <div class="col-6 mb-3">
-            <div class="donut" data-score="{{ score_ats|int }}"></div>
+            <div
+              class="donut"
+              data-score="{{ score_ats|int }}"
+              data-bs-toggle="tooltip"
+              data-bs-html="true"
+              title="
+                <strong>Estructura ATS del CV</strong><br>
+                Secciones detectadas: {{ ats_details.sections_found if ats_details else 0 }}/5<br>
+                Páginas: {{ ats_details.pages if ats_details else '-' }}{% if ats_details %} {% if ats_details.pages <= 2 %}(OK){% elif ats_details.pages == 3 %}(justo){% else %}(exceso){% endif %}{% endif %}<br>
+                Imágenes: {{ ats_details.images if ats_details else 0 }} (evítalas)<br>
+                Tablas: {{ ats_details.tables if ats_details else 0 }} (evítalas)<br>
+                Idioma CV: {% if ats_details and ats_details.lang_ok %}Inglés{% else %}Español/otro{% endif %}.
+              ">
+            </div>
             <div class="fw-semibold mt-2">Coincidencia Plantilla ATS</div>
           </div>
         </div>
@@ -174,7 +201,7 @@
 {% block extra_js %}
 <script>
 (function () {
-  // Donuts (si hay score)
+  // --- Donuts (si los usas) ---
   var donuts = document.querySelectorAll('.donut');
   donuts.forEach(function(el){
     var s = parseInt(el.getAttribute('data-score') || '0', 10);
@@ -185,35 +212,82 @@
     el.style.setProperty('--color', color);
   });
 
-  // Drag & drop
+  // --- Drag & Drop / File input ---
   var dz = document.getElementById('dropzone');
   var fi = document.getElementById('file-input');
   var fn = document.getElementById('file-name');
   if (!dz || !fi) return;
 
-  function setFile(f){
-    if (!f) return;
-    if (!/\.(pdf|docx)$/i.test(f.name)) {
-      alert('Formato no permitido. Solo PDF o DOCX.');
-      return;
-    }
-    fi.files = new DataTransfer(); // limpiar
-    var dt = new DataTransfer();
-    dt.items.add(f);
-    fi.files = dt.files;
-    fn.textContent = 'Archivo: ' + f.name + ' (' + Math.round(f.size/1024) + ' KB)';
+  function humanKB(bytes){ return Math.round((bytes||0)/1024) + ' KB'; }
+
+  function showName(file){
+    if (!file) { fn.textContent = ''; return; }
+    fn.textContent = 'Archivo: ' + file.name + ' (' + humanKB(file.size) + ')';
   }
 
-  dz.addEventListener('click', function(){ fi.click(); });
-  fi.addEventListener('change', function(e){ setFile(e.target.files[0]); });
+  function validarExt(file){
+    if (!/\.(pdf|docx)$/i.test(file.name)) {
+      alert('Formato no permitido. Solo PDF o DOCX.');
+      return false;
+    }
+    return true;
+  }
 
+  // Asigna un archivo al input usando DataTransfer (camino “drop”)
+  function setFileFromDrop(file){
+    if (!file || !validarExt(file)) return;
+    try {
+      var dt = new DataTransfer();
+      dt.items.add(file);
+      fi.files = dt.files;          // ✅ asignamos FileList válido
+      showName(file);
+    } catch (e) {
+      console.warn('No se pudo asignar el archivo vía DataTransfer', e);
+      // Fallback: muestra el nombre y pide que elija por click
+      showName(file);
+      alert('Tu navegador no permite asignar el archivo automáticamente. Haz clic para seleccionarlo.');
+    }
+  }
+
+  // Click en zona -> abre selector nativo
+  dz.addEventListener('click', function(){ fi.click(); });
+
+  // Selector manual: NO reasignamos fi.files, solo validamos y mostramos
+  fi.addEventListener('change', function(e){
+    var f = e.target.files && e.target.files[0];
+    if (!f) { showName(null); return; }
+    if (!validarExt(f)) { fi.value = ''; showName(null); return; }
+    showName(f);
+  });
+
+  // Efectos visuales de drag
   dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('bg-light'); });
   dz.addEventListener('dragleave', function(){ dz.classList.remove('bg-light'); });
+
+  // Drop
   dz.addEventListener('drop', function(e){
     e.preventDefault();
     dz.classList.remove('bg-light');
-    var f = e.dataTransfer.files && e.dataTransfer.files[0];
-    setFile(f);
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    setFileFromDrop(f);
+  });
+
+  // Validación antes de enviar (por si quedó sin archivo)
+  var frm = dz.closest('form');
+  if (frm) {
+    frm.addEventListener('submit', function(e){
+      if (!fi.files || fi.files.length === 0) {
+        e.preventDefault();
+        alert('Por favor, selecciona un archivo PDF o DOCX.');
+      }
+    });
+  }
+})();
+(function () {
+  // Inicializar tooltips Bootstrap
+  var triggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  triggers.forEach(function (el) {
+    new bootstrap.Tooltip(el, { container: 'body', trigger: 'hover focus' });
   });
 })();
 </script>

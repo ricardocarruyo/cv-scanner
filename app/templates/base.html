@@ -65,7 +65,10 @@
 
         <a class="btn btn-sm btn-outline-dark me-2"
           href="https://youtu.be/4icmc4kkPEY" target="_blank" rel="noopener">
-          <i class="bi bi-question-circle"></i> ¿Qué es un ATS?
+          <i class="bi bi-play-circle" 
+            data-bs-toggle="tooltip" 
+            data-bs-placement="top" 
+            title="Ver video explicativo"></i> ¿Qué es un ATS?
         </a>
         {% if session.get('user_email') %}
           {% if session.get('user_picture') %}
