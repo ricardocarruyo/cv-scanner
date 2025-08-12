@@ -33,6 +33,8 @@
   }  
 
   .donut { cursor: help; }
+
+  #dropzone { border-style: dashed; }
 </style>
 {% endblock %}
 
@@ -60,8 +62,8 @@
 
             <input id="file-input" type="file" name="cv" accept=".pdf,.docx" hidden required>
 
-            <div id="dropzone" class="border border-2 border-dashed rounded-3 p-4 text-center bg-white"
-                style="cursor:pointer;">
+            <div id="dropzone" class="border border-2 rounded-3 p-4 text-center bg-white"
+                style="cursor:pointer; border-style:dashed;">
               <div class="mb-2 fw-semibold">Arrastra y suelta tu archivo aquí</div>
               <div class="text-muted small">o haz clic para elegir desde tu computadora</div>
               <div id="file-name" class="mt-2 small text-secondary"></div>
@@ -305,8 +307,19 @@
   function humanKB(bytes){ return Math.round((bytes||0)/1024) + ' KB'; }
 
   function showName(file){
-    if (!file) { fn.textContent = ''; return; }
-    fn.textContent = 'Archivo: ' + file.name + ' (' + humanKB(file.size) + ')';
+    if (!file) {
+      fn.textContent = '';
+      clearOK();
+      return;
+    }
+    // texto en verde + check
+    fn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> ' +
+                   'Archivo: ' + file.name + ' (' + humanKB(file.size) + ')';
+    fn.classList.remove('text-secondary');
+    fn.classList.add('text-success');
+
+    // resalta el recuadro en verde suave
+    dz.classList.add('border-success','bg-success-subtle');
   }
 
   function validarExt(file){
