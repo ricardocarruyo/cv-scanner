@@ -23,6 +23,15 @@ def favicon():
         mimetype="image/vnd.microsoft.icon"
     )
 
+@bp.route("/descargas/plantilla-ats")
+def descargar_plantilla_ats():
+    return send_from_directory(
+        current_app.static_folder,
+        "docs/Plantilla_CV_ATS_STAR.docx",
+        as_attachment=True,
+        download_name="Plantilla_CV_ATS_STAR.docx"  # nombre sugerido
+    )
+
 @bp.route("/", methods=["GET", "POST"])
 def index():
     email = session.get("user_email")
