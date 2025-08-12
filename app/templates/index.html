@@ -54,8 +54,17 @@
           </div>
 
           <div class="mb-2">
-            <label class="form-label">Sube tu CV (PDF o DOCX, máx. {{ max_mb or 10 }} MB):</label>
-            <input type="file" class="form-control" name="cv" accept=".pdf,.docx" required>
+            <label class="form-label">Sube tu CV (PDF o DOCX, máx. {{ max_mb or 2 }} MB):</label>
+
+            <input id="file-input" type="file" name="cv" accept=".pdf,.docx" hidden required>
+
+            <div id="dropzone" class="border border-2 border-dashed rounded-3 p-4 text-center bg-white"
+                style="cursor:pointer;">
+              <div class="mb-2 fw-semibold">Arrastra y suelta tu archivo aquí</div>
+              <div class="text-muted small">o haz clic para elegir desde tu computadora</div>
+              <div id="file-name" class="mt-2 small text-secondary"></div>
+            </div>
+
             <div class="form-text">Solo PDF/DOCX. Realizamos controles básicos de seguridad.</div>
           </div>
 
@@ -89,16 +98,21 @@
           <h5 class="mb-3">Lineamientos para subir tu CV</h5>
           <ul class="small mb-3">
             <li>Formato: <strong>PDF o DOCX</strong></li>
-            <li>Idioma: <strong>Inglés</strong></li>
+            <li>Idioma: <strong>Español o Inglés</strong></li>
             <li>Texto legible (no imagen escaneada)</li>
             <li>Tamaño máximo: <strong>{{ max_mb }} MB</strong></li>
             <li>Solo el CV (no adjuntes otros documentos)</li>
-            <li>Sin contraseña</li>
+            <li>
+              <a class="link-primary" href="{{ url_for('static', filename='docs/Plantilla_CV_ATS_STAR.docx') }}" download>
+                Descargar Plantilla CV ATS
+              </a>
+            </li>
           </ul>
           <h6 class="mt-3">Recomendaciones ATS</h6>
           <ul class="small">
             <li><strong>1–2 páginas</strong> (junior 1 pág., senior hasta 2).</li>
-            <li>Secciones: Summary/Objective, Experience, Education, Skills, Certifications.</li>
+            <li><strong>Sections:</strong> Summary/Objective, Experience, Education, Skills, Certifications.</li>
+            <li><strong>Secciones:</strong> Resumen/Objetivo, Experiencia, Educación, Habilidades, Certificaciones.</li>
             <li>Tipografías seguras: Arial, Calibri, Helvetica, Verdana.</li>
             <li><strong>Evita imágenes, logos, tablas y columnas</strong>.</li>
             <li>Usa encabezados simples (H1/H2) y bullets estándar.</li>
@@ -129,8 +143,9 @@
     <hr class="my-4">
     <h5 class="mb-2">Lineamientos ATS recomendados</h5>
     <ul class="small mb-0">
-      <li>Formato PDF/DOCX, inglés, texto no escaneado, máx. {{ max_mb }} MB.</li>
-      <li>Incluye: Summary, Experience, Education, Skills, Certifications.</li>
+      <li>Formato PDF/DOCX, español o inglés, texto no escaneado, máx. {{ max_mb }} MB.</li>
+      <li>Include: Summary, Experience, Education, Skills, Certifications.</li>
+      <li>Incluye: Resumen, Experiencia, Educación, Habilidades, Certificaciones.</li>
       <li>Evita imágenes, tablas, columnas y elementos decorativos.</li>
       <li>Extensión ideal: 1–2 páginas.</li>
       <li>Usa fuentes estándar (Arial, Calibri, Helvetica, Verdana).</li>
@@ -159,18 +174,51 @@
 {% block extra_js %}
 <script>
 (function () {
-  var nodes = document.querySelectorAll('.donut');
-  nodes.forEach(function(el){
+  // Donuts (si hay score)
+  var donuts = document.querySelectorAll('.donut');
+  donuts.forEach(function(el){
     var s = parseInt(el.getAttribute('data-score') || '0', 10);
     s = Math.max(0, Math.min(100, s));
-    var deg = s * 3.6; // 100% = 360°
+    var deg = s * 3.6;
     var color = (s >= 80) ? '#28a745' : (s >= 50 ? '#ffc107' : '#dc3545');
     el.style.setProperty('--angle', deg + 'deg');
     el.style.setProperty('--color', color);
   });
+
+  // Drag & drop
+  var dz = document.getElementById('dropzone');
+  var fi = document.getElementById('file-input');
+  var fn = document.getElementById('file-name');
+  if (!dz || !fi) return;
+
+  function setFile(f){
+    if (!f) return;
+    if (!/\.(pdf|docx)$/i.test(f.name)) {
+      alert('Formato no permitido. Solo PDF o DOCX.');
+      return;
+    }
+    fi.files = new DataTransfer(); // limpiar
+    var dt = new DataTransfer();
+    dt.items.add(f);
+    fi.files = dt.files;
+    fn.textContent = 'Archivo: ' + f.name + ' (' + Math.round(f.size/1024) + ' KB)';
+  }
+
+  dz.addEventListener('click', function(){ fi.click(); });
+  fi.addEventListener('change', function(e){ setFile(e.target.files[0]); });
+
+  dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('bg-light'); });
+  dz.addEventListener('dragleave', function(){ dz.classList.remove('bg-light'); });
+  dz.addEventListener('drop', function(e){
+    e.preventDefault();
+    dz.classList.remove('bg-light');
+    var f = e.dataTransfer.files && e.dataTransfer.files[0];
+    setFile(f);
+  });
 })();
 </script>
 {% endblock %}
+
 
 
 
