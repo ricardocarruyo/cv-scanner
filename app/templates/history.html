@@ -32,23 +32,26 @@
           <th>Ext</th>
           <th>Tamaño</th>
           <th>Modelo</th>
-          <th>Puntaje</th>
+          <th>Puntaje JD</th>
+          <th>ATS %</th>           <!-- NUEVA -->
           <th>Idioma CV</th>
           <th>Idioma JD</th>
-          {% if is_admin %}<th>Correo</th>{% endif %}
+          <th>Correo</th>          <!-- como es admin-only, lo dejamos -->
         </tr>
       </thead>
       <tbody>
         {% for e in executions %}
         <tr>
           <td>{{ e.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-          <td>{{ e.uploaded_filename or '-' }}</td>
-          <td>{{ e.uploaded_ext or '-' }}</td>
-          <td>{{ (e.uploaded_size or 0) // 1024 }} KB</td>
-          <td>{{ (e.model_vendor or '-') ~ ' / ' ~ (e.model_name or '-') }}</td>
-          <td>{{ e.score if e.score is not none else '-' }}</td>
-          <td>{{ e.resume_lang or '-' }}</td>
-          <td>{{ e.jd_lang or '-' }}</td>
+            <td>{{ e.uploaded_filename or '-' }}</td>
+            <td>{{ e.uploaded_ext or '-' }}</td>
+            <td>{{ (e.uploaded_size or 0) // 1024 }} KB</td>
+            <td>{{ (e.model_vendor or '-') ~ ' / ' ~ (e.model_name or '-') }}</td>
+            <td>{{ e.score if e.score is not none else '-' }}</td>
+            <td>{{ e.ats_score if e.ats_score is not none else '-' }}</td>  <!-- NUEVA -->
+            <td>{{ e.resume_lang or '-' }}</td>
+            <td>{{ e.jd_lang or '-' }}</td>
+            <td>{{ e.email }}</td>
           {% if is_admin %}<td>{{ e.email }}</td>{% endif %}
         </tr>
         {% endfor %}

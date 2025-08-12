@@ -1,5 +1,6 @@
 from datetime import datetime
 from .extensions import db
+from sqlalchemy import Integer, Column
 
 class User(db.Model):
     __tablename__ = "users"
@@ -36,6 +37,7 @@ class Execution(db.Model):
     score = db.Column(db.Integer)
     feedback_text = db.Column(db.Text)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    ats_score = Column(Integer, nullable=True)
 
     user = db.relationship("User", back_populates="executions")
 

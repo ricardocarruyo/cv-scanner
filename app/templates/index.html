@@ -8,6 +8,29 @@
   .needle { transform-origin: 50% 100%; transition: transform 0.8s ease-in-out; }
   .score-label { position: absolute; bottom: 8%; left: 50%; transform: translateX(-50%); font-size: 1.75rem; font-weight: 700; }
   .model-badge { font-size: .9rem; }
+
+  .donut {
+    --size: 150px;
+    --track: #e9ecef;
+    --ok: #28a745;
+    --mid: #ffc107;
+    --bad: #dc3545;
+    width: var(--size);
+    height: var(--size);
+    border-radius: 50%;
+    background:
+      conic-gradient(var(--color, #28a745) 0deg, var(--color, #28a745) var(--angle, 0deg), var(--track) var(--angle, 0deg));
+    position: relative;
+    margin: 0 auto;
+  }
+  .donut::after{
+    content: attr(data-score) '%';
+    position:absolute; inset: 0;
+    display:grid; place-items:center;
+    font-weight: 700; color:#212529;
+    background:
+      radial-gradient(circle at center, #fff 0 58%, transparent 59%);
+  }  
 </style>
 {% endblock %}
 
@@ -47,37 +70,44 @@
     </div>
   </div>
 
-  <!-- Tacómetro -->
+  <!-- Panel derecho -->
   <div class="col-12 col-lg-6">
-    <div class="card p-4 shadow-sm h-100 d-flex align-items-center justify-content-center">
-      {% if score is not none %}
-        <div class="gauge-wrap">
-          <svg class="gauge" viewBox="0 0 200 100" aria-label="Indicador de coincidencia">
-            <path d="M10,100 A90,90 0 0 1 190,100" fill="none" stroke="#eee" stroke-width="20"/>
-            <defs>
-              <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#dc3545"/>
-                <stop offset="50%" stop-color="#ffc107"/>
-                <stop offset="100%" stop-color="#28a745"/>
-              </linearGradient>
-            </defs>
-            <path d="M10,100 A90,90 0 0 1 190,100" fill="none" stroke="url(#g)" stroke-width="20" stroke-linecap="round"/>
-            <g id="needle" class="needle">
-              <polygon points="100,96 97,100 103,100" fill="#333"/>
-              <rect x="99" y="10" width="2" height="90" fill="#333"/>
-              <circle cx="100" cy="100" r="4" fill="#333"/>
-            </g>
-            <text x="10" y="98" font-size="10" fill="#6c757d">0</text>
-            <text x="185" y="98" font-size="10" fill="#6c757d">100</text>
-          </svg>
-          <div class="score-label">{{ score }}%</div>
+    <div class="card p-4 shadow-sm h-100 d-flex align-items-stretch">
+      {% if score_jd is not none and score_ats is not none %}
+        <div class="row w-100 text-center">
+          <div class="col-6 mb-3">
+            <div class="donut" data-score="{{ score_jd|int }}"></div>
+            <div class="fw-semibold mt-2">Coincidencia JD</div>
+          </div>
+          <div class="col-6 mb-3">
+            <div class="donut" data-score="{{ score_ats|int }}"></div>
+            <div class="fw-semibold mt-2">Coincidencia Plantilla ATS</div>
+          </div>
         </div>
       {% else %}
-        <div class="text-muted text-center">Sube tu CV y la descripción para ver el indicador de coincidencia.</div>
+        <div class="w-100">
+          <h5 class="mb-3">Lineamientos para subir tu CV</h5>
+          <ul class="small mb-3">
+            <li>Formato: <strong>PDF o DOCX</strong></li>
+            <li>Idioma: <strong>Inglés</strong></li>
+            <li>Texto legible (no imagen escaneada)</li>
+            <li>Tamaño máximo: <strong>{{ max_mb }} MB</strong></li>
+            <li>Solo el CV (no adjuntes otros documentos)</li>
+            <li>Sin contraseña</li>
+          </ul>
+          <h6 class="mt-3">Recomendaciones ATS</h6>
+          <ul class="small">
+            <li><strong>1–2 páginas</strong> (junior 1 pág., senior hasta 2).</li>
+            <li>Secciones: Summary/Objective, Experience, Education, Skills, Certifications.</li>
+            <li>Tipografías seguras: Arial, Calibri, Helvetica, Verdana.</li>
+            <li><strong>Evita imágenes, logos, tablas y columnas</strong>.</li>
+            <li>Usa encabezados simples (H1/H2) y bullets estándar.</li>
+            <li>No uses gráficos incrustados ni íconos como texto.</li>
+          </ul>
+        </div>
       {% endif %}
     </div>
   </div>
-</div>
 
 <!-- Resultado del análisis -->
 {% if feedback %}
@@ -96,6 +126,15 @@
       </div>
     </div>
     <div>{{ feedback|safe }}</div>
+    <hr class="my-4">
+    <h5 class="mb-2">Lineamientos ATS recomendados</h5>
+    <ul class="small mb-0">
+      <li>Formato PDF/DOCX, inglés, texto no escaneado, máx. {{ max_mb }} MB.</li>
+      <li>Incluye: Summary, Experience, Education, Skills, Certifications.</li>
+      <li>Evita imágenes, tablas, columnas y elementos decorativos.</li>
+      <li>Extensión ideal: 1–2 páginas.</li>
+      <li>Usa fuentes estándar (Arial, Calibri, Helvetica, Verdana).</li>
+    </ul>
   </div>
 {% endif %}
 
@@ -120,19 +159,15 @@
 {% block extra_js %}
 <script>
 (function () {
-  // Tomamos score como string seguro: "" si no viene, None, etc.
-  var s = "{{ score|default('', true) }}";
-  if (!s) return; // nada que hacer si está vacío
-
-  var score = parseInt(s, 10);
-  if (isNaN(score)) return;
-
-  // 0–100 -> 0–180
-  var deg = Math.max(0, Math.min(100, score)) * 1.8;
-  var needle = document.getElementById("needle");
-  if (needle) {
-    needle.style.transform = "rotate(" + deg + "deg)";
-  }
+  var nodes = document.querySelectorAll('.donut');
+  nodes.forEach(function(el){
+    var s = parseInt(el.getAttribute('data-score') || '0', 10);
+    s = Math.max(0, Math.min(100, s));
+    var deg = s * 3.6; // 100% = 360°
+    var color = (s >= 80) ? '#28a745' : (s >= 50 ? '#ffc107' : '#dc3545');
+    el.style.setProperty('--angle', deg + 'deg');
+    el.style.setProperty('--color', color);
+  });
 })();
 </script>
 {% endblock %}
