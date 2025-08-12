@@ -135,15 +135,45 @@
               </a>
             </li>
           </ul>
+
           <h6 class="mt-3">Recomendaciones ATS</h6>
           <ul class="small">
             <li><strong>1–2 páginas</strong> (junior 1 pág., senior hasta 2).</li>
-            <li><strong>Sections:</strong> Summary/Objective, Experience, Education, Skills, Certifications.</li>
-            <li><strong>Secciones:</strong> Resumen/Objetivo, Experiencia, Educación, Habilidades, Certificaciones.</li>
             <li>Tipografías seguras: Arial, Calibri, Helvetica, Verdana.</li>
-            <li><strong>Evita imágenes, logos, tablas y columnas</strong>.</li>
+            <li><strong>Evita</strong> imágenes, logos, tablas y columnas.</li>
             <li>Usa encabezados simples (H1/H2) y bullets estándar.</li>
             <li>No uses gráficos incrustados ni íconos como texto.</li>
+          </ul>
+
+          <h6 class="mt-3">Títulos / Secciones equivalentes aceptadas por ATS</h6>
+          <p class="small text-muted mb-2">Puedes usar cualquiera de estos nombres; el sistema los reconocerá como equivalentes.</p>
+          <ul class="small mb-3">
+            <li>
+              <strong>Perfil profesional</strong> → Resumen profesional, Resumen, Objetivo(s), <em>Summary</em>, <em>Professional Summary</em>, <em>Profile</em>, <em>Objective</em>.
+            </li>
+            <li>
+              <strong>Experiencia laboral</strong> → Experiencia profesional, Experiencia, <em>Work Experience</em>, <em>Employment History</em>, <em>Career History</em>.
+            </li>
+            <li>
+              <strong>Educación</strong> → Formación académica, <em>Education</em>, <em>Academic Background</em>.
+            </li>
+            <li>
+              <strong>Habilidades</strong> → Competencias, <em>Skills</em>, <em>Hard Skills</em>, <em>Soft Skills</em>, <em>Technical Skills</em>.
+            </li>
+            <li>
+              <strong>Idiomas</strong> → <em>Languages</em>.
+            </li>
+          </ul>
+
+          <h6 class="mt-3">Recomendación: usa el formato STAR en tu experiencia</h6>
+          <p class="small mb-1">
+            El método <strong>STAR</strong> ayuda a redactar logros claros y medibles:
+          </p>
+          <ul class="small mb-0">
+            <li><strong>S</strong>ituación: contexto o problema.</li>
+            <li><strong>T</strong>area: objetivo o responsabilidad.</li>
+            <li><strong>A</strong>cción: qué hiciste específicamente.</li>
+            <li><strong>R</strong>esultado: impacto medible (%, tiempos, ahorros, etc.).</li>
           </ul>
         </div>
       {% endif %}
@@ -168,15 +198,69 @@
     </div>
     <div>{{ feedback|safe }}</div>
     <hr class="my-4">
-    <h5 class="mb-2">Lineamientos ATS recomendados</h5>
-    <ul class="small mb-0">
-      <li>Formato PDF/DOCX, español o inglés, texto no escaneado, máx. {{ max_mb }} MB.</li>
-      <li>Include: Summary, Experience, Education, Skills, Certifications.</li>
-      <li>Incluye: Resumen, Experiencia, Educación, Habilidades, Certificaciones.</li>
-      <li>Evita imágenes, tablas, columnas y elementos decorativos.</li>
-      <li>Extensión ideal: 1–2 páginas.</li>
-      <li>Usa fuentes estándar (Arial, Calibri, Helvetica, Verdana).</li>
-    </ul>
+    <h5 class="mb-2">Estructura ATS detectada</h5>
+    <div class="row">
+      <div class="col-md-6">
+        <div class="fw-semibold">Secciones presentes ({{ ats_details.sections_found if ats_details else 0 }}/5)</div>
+        <ul class="small mb-3">
+          {% if ats_details and ats_details.sections_present %}
+            {% for s in ats_details.sections_present %}
+              <li>{{ s|title }}</li>
+            {% endfor %}
+          {% else %}
+            <li class="text-muted">No detectadas.</li>
+          {% endif %}
+        </ul>
+      </div>
+      <div class="col-md-6">
+        <div class="fw-semibold">Secciones faltantes</div>
+        <ul class="small mb-0">
+          {% if ats_details and ats_details.sections_missing %}
+            {% for s in ats_details.sections_missing %}
+              <li>{{ s|title }}</li>
+            {% endfor %}
+          {% else %}
+            <li class="text-muted">Ninguna.</li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+
+    <hr class="my-4">
+      <h5 class="mb-2">Lineamientos y equivalencias ATS</h5>
+      <ul class="small mb-2">
+        <li>Formato: <strong>PDF o DOCX</strong>. Idioma: <strong>Español o Inglés</strong>. Texto legible (no escaneado). Máx. {{ max_mb }} MB.</li>
+        <li>Evita imágenes, tablas y columnas; usa encabezados simples y bullets estándar.</li>
+        <li>Tipografías seguras: Arial, Calibri, Helvetica, Verdana.</li>
+        <li>
+          <a class="link-primary" href="{{ url_for('static', filename='docs/Plantilla_CV_ATS_STAR.docx') }}" download>
+            Descargar Plantilla CV ATS
+          </a>
+        </li>
+      </ul>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="fw-semibold small">Secciones equivalentes aceptadas</div>
+          <ul class="small mb-3">
+            <li><strong>Perfil profesional</strong> → Resumen profesional, Resumen, Objetivo(s), <em>Summary</em>, <em>Professional Summary</em>, <em>Profile</em>, <em>Objective</em>.</li>
+            <li><strong>Experiencia laboral</strong> → Experiencia profesional, Experiencia, <em>Work Experience</em>, <em>Employment History</em>, <em>Career History</em>.</li>
+            <li><strong>Educación</strong> → Formación académica, <em>Education</em>, <em>Academic Background</em>.</li>
+            <li><strong>Habilidades</strong> → Competencias, <em>Skills</em>, <em>Hard/Soft/Technical Skills</em>.</li>
+            <li><strong>Idiomas</strong> → <em>Languages</em>.</li>
+          </ul>
+        </div>
+        <div class="col-md-6">
+          <div class="fw-semibold small">Formato STAR para tu experiencia</div>
+          <p class="small mb-1">Redacta cada logro con STAR para mejorar la lectura por ATS y por reclutadores:</p>
+          <ul class="small mb-0">
+            <li><strong>S</strong>ituación: contexto o problema.</li>
+            <li><strong>T</strong>area: objetivo o responsabilidad.</li>
+            <li><strong>A</strong>cción: qué hiciste específicamente (verbos de acción, métricas, herramientas).</li>
+            <li><strong>R</strong>esultado: impacto cuantificable (% mejora, tiempos, costos, calidad).</li>
+          </ul>
+        </div>
+      </div>
   </div>
 {% endif %}
 
