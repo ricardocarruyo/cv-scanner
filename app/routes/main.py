@@ -80,12 +80,18 @@ def index():
 
             # Extensión segura
             ext = filename.rsplit(".", 1)[-1].lower()
-            try:
-                cv_text = extract_pdf(data) if ext == "pdf" else extract_docx(data)
-            except Exception:
-                flash("No se pudo leer el archivo.")
-                return redirect(url_for("main.index"))
 
+            # Extraer texto y metadatos
+            if ext == "pdf":
+                cv_text, pdf_meta = extract_pdf(data)   # ✅ ahora desempaca
+                docx_meta = None
+            else:
+                cv_text, docx_meta = extract_docx(data) # ✅ ahora desempaca
+                pdf_meta = None
+
+            # Asegurar string
+            cv_text = cv_text or ""
+            
             if looks_suspicious(cv_text[:100000]):
                 flash("Detectamos contenido potencialmente peligroso en el archivo.")
                 return redirect(url_for("main.index"))
