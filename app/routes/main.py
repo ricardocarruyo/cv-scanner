@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, session, redirect, url_for, flash, make_response
+from flask import Blueprint, render_template, request, session, redirect, url_for, flash, make_response,send_from_directory, current_app
 from ..extensions import db
 from ..models import User, Execution
 from ..services.security import allowed_file, looks_suspicious
@@ -8,7 +8,6 @@ import markdown
 from ..models import User, Execution, Comment   # <-- agrega Comment
 from sqlalchemy import asc                      # <-- agrega asc
 from datetime import datetime                   # <-- para timestamps
-from flask import send_from_directory, current_app
 from ..services.files import extract_pdf, extract_docx
 from ..services.ats import evaluate_ats_compliance
 
@@ -137,7 +136,7 @@ def index():
                 jd_lang=jd_lang,
                 model_vendor=model_vendor,
                 model_name=model_name,
-                score=score,
+                score=score_jd,
                 feedback_text=feedback_text,
                 ats_score=score_ats
             )
@@ -146,7 +145,7 @@ def index():
             # último análisis en users
             u.last_model_vendor = model_vendor
             u.last_model_name = model_name
-            u.last_score = score
+            u.last_score = score_jd
             u.last_exec_id = ex.id
             u.last_analysis_at = ex.created_at
             db.session.commit()
