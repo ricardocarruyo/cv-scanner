@@ -1,10 +1,11 @@
-from flask import Blueprint, render_template, session, redirect, url_for, request, current_app, Response, flash, send_file, make_response
+from flask import Blueprint, render_template, session, redirect, url_for, request, current_app, Response, flash, send_file, make_response, abort
 from datetime import datetime
 import math, csv, io
 
 from ..extensions import db
 from ..models import Execution, Comment
 from ..services.pdf import render_analysis_pdf
+from ..models import Execution, Comment, User
 
 bp = Blueprint("history", __name__)
 
@@ -20,47 +21,37 @@ def _is_admin():
 
 @bp.route("/history")
 def history():
-    if not _require_login():
-        return redirect(url_for("auth.login"))
+    email = session.get("user_email")
+    admin = (email and current_app.config.get("ADMIN_EMAIL") 
+            and email.lower() == current_app.config["ADMIN_EMAIL"].lower())
+    if not admin:
+        abort(403)  # o: flash("Acceso solo para admin"); return redirect(url_for("main.index"))
+    
+    page_exec = int(request.args.get("page_exec", 1))
+    page_cmt  = int(request.args.get("page_cmt", 1))
+    per_page  = int(request.args.get("per_page", 20))
 
-    viewer = session["user_email"]
-    is_admin = _is_admin()
+    exec_q = Execution.query.order_by(Execution.created_at.desc())
+    cmt_q  = Comment.query.order_by(Comment.created_at.desc())
 
-    per_page = max(5, min(50, int(request.args.get("per_page", 10))))
-    page_exec = max(1, int(request.args.get("page_exec", 1)))
-    page_cmt = max(1, int(request.args.get("page_cmt", 1)))
+    executions = exec_q.limit(per_page).offset((page_exec-1)*per_page).all()
+    total_exec = exec_q.count()
+    pages_exec = max(1, (total_exec + per_page - 1)//per_page)
 
-    q_exec = Execution.query.order_by(Execution.created_at.desc())
-    q_cmt = Comment.query.order_by(Comment.created_at.desc())
+    comments = cmt_q.limit(per_page).offset((page_cmt-1)*per_page).all()
+    total_cmt = cmt_q.count()
+    pages_cmt = max(1, (total_cmt + per_page - 1)//per_page)
 
-    if not is_admin:
-        q_exec = q_exec.filter(Execution.email == viewer)
-        q_cmt = q_cmt.filter(Comment.email == viewer)
-
-    total_exec = q_exec.count()
-    total_cmt = q_cmt.count()
-
-    executions = q_exec.offset((page_exec - 1) * per_page).limit(per_page).all()
-    comments = q_cmt.offset((page_cmt - 1) * per_page).limit(per_page).all()
-
-    pages_exec = max(1, math.ceil(total_exec / per_page)) if total_exec else 1
-    pages_cmt = max(1, math.ceil(total_cmt / per_page)) if total_cmt else 1
-
-    html = render_template(
+    return render_template(
         "history.html",
-        email=viewer,
-        is_admin=is_admin,
+        is_admin=True,
+        email=email,
         executions=executions,
         comments=comments,
-        page_exec=page_exec,
-        page_cmt=page_cmt,
-        pages_exec=pages_exec,
-        pages_cmt=pages_cmt,
+        page_exec=page_exec, pages_exec=pages_exec,
+        page_cmt=page_cmt,   pages_cmt=pages_cmt,
         per_page=per_page,
     )
-    resp = make_response(html)
-    resp.headers["Content-Type"] = "text/html; charset=utf-8"
-    return resp
 
 @bp.route("/history/export")
 def export_history():

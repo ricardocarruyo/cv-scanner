@@ -65,8 +65,11 @@
           {% endif %}
           <span class="me-3 d-none d-md-inline">{{ session.get('user_name') or session.get('user_email') }}</span>
           <a class="btn btn-sm btn-outline-secondary me-2" href="{{ url_for('history.history') }}"><i class="bi bi-clock-history"></i> Historial</a>
-          {% if config.get('ADMIN_EMAIL') and session.get('user_email') and session.get('user_email')|lower == config.get('ADMIN_EMAIL')|lower %}
-            <a class="btn btn-sm btn-outline-dark me-2" href="{{ url_for('admin.panel') }}"><i class="bi bi-speedometer2"></i> Admin</a>
+          {% if config.get('ADMIN_EMAIL') and session.get('user_email') 
+                and session.get('user_email')|lower == config.get('ADMIN_EMAIL')|lower %}
+            <a class="btn btn-sm btn-outline-secondary me-2" href="{{ url_for('history.history') }}">
+              <i class="bi bi-clock-history"></i> Historial
+            </a>
           {% endif %}
           <a class="btn btn-sm btn-outline-danger" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right"></i></a>
         {% else %}
