@@ -42,37 +42,44 @@ def index():
 
     if request.method == "POST":
         try:
-            ext = filename.rsplit(".", 1)[1].lower()
-            if ext == "pdf":
-                cv_text, pdf_meta = extract_pdf(data)
-                docx_meta = None
-            else:
-                cv_text, docx_meta = extract_docx(data)
-                pdf_meta = None
-                
             if not email:
                 flash("Inicia sesión para analizar tu CV.")
                 return redirect(url_for("auth.login"))
 
             file = request.files.get("cv")
-            jobdesc = request.form.get("jobdesc", "")
+            jobdesc = (request.form.get("jobdesc") or "").strip()
             occ = (request.form.get("occupation") or "").strip()[:200]
 
-            if not file or not jobdesc:
-                flash("Faltan el archivo y/o la descripción del puesto.")
+            # Nombre de archivo (puede venir vacío aunque 'file' exista)
+            filename = ""
+            if file and getattr(file, "filename", None):
+                filename = (file.filename or "").strip()
+
+            # Validaciones tempranas
+            if not filename:
+                flash("No se recibió ningún archivo. Selecciona un PDF o DOCX.")
                 return redirect(url_for("main.index"))
 
-            filename = file.filename or ""
+            if not jobdesc:
+                flash("Falta la descripción del puesto.")
+                return redirect(url_for("main.index"))
+
             if not allowed_file(filename):
                 flash("Formato no permitido. Solo PDF o DOCX.")
                 return redirect(url_for("main.index"))
 
-            data = file.read()
-            if len(data) > MAX_MB * 1024 * 1024:
-                flash("El archivo supera 2 MB.")
+            # Leer bytes
+            data = file.read() or b""
+            if not data:
+                flash("El archivo está vacío o no se pudo leer.")
                 return redirect(url_for("main.index"))
 
-            ext = filename.rsplit(".", 1)[1].lower()
+            if len(data) > MAX_MB * 1024 * 1024:
+                flash(f"El archivo supera {MAX_MB} MB.")
+                return redirect(url_for("main.index"))
+
+            # Extensión segura
+            ext = filename.rsplit(".", 1)[-1].lower()
             try:
                 cv_text = extract_pdf(data) if ext == "pdf" else extract_docx(data)
             except Exception:
