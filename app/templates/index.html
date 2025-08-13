@@ -14,42 +14,38 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: visible;              /* evita recortes */
-    min-height: 220px;              /* da aire vertical */
+    overflow: visible;    /* <- importante para que no recorte el contenedor */
+    min-height: 220px;
   }
 
-  /* Donut en sí */
-  .donut        { text-align: center; }
   .donut-wrap   { position: relative; width: 180px; height: 180px; }
   .donut-svg    { width: 100%; height: 100%; transform: rotate(-90deg); }
 
-  @media (max-width: 991.98px) {
-    .analysis-meters .donut-host { min-height: 200px; }
-    .donut-wrap { width: 160px; height: 160px; }
-  }
-
-  /* Pista e indicador */
   .donut-track {
     fill: none;
     stroke: #eee;
-    stroke-width: 6;
+    stroke-width: 4.5;    /* antes 6 */
   }
 
   .donut-indicator {
     fill: none;
     stroke: var(--donut-color, #28a745);
-    stroke-width: 6;
+    stroke-width: 4.5;    /* antes 6 */
     stroke-linecap: round;
-    stroke-dasharray: var(--dash, 0) 100; /* 0–100 reales */
+    stroke-dasharray: var(--dash, 0) 100;
     transition: stroke-dasharray .6s ease, stroke .3s ease;
   }
 
-  /* Porcentaje centrado (texto NO va dentro del SVG) */
   .donut-label {
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
     font-weight: 700; font-size: 1.1rem;
   }
+
+  @media (max-width: 991.98px) {
+    .analysis-meters .donut-host { min-height: 200px; }
+    .donut-wrap { width: 160px; height: 160px; }
+  } 
 
   #dropzone { border-style: dashed; }
   .dropzone.dragover { background-color:#f8f9fa; border-color:#0d6efd; }
@@ -213,9 +209,9 @@
           <!-- Donut JD -->
           <div class="donut" data-score="{{ score_jd|default(0, true)|int }}">
             <div class="donut-wrap">
-              <svg viewBox="0 0 36 36" class="donut-svg" aria-label="Coincidencia con Job Description">
-                <circle class="donut-track"     cx="18" cy="18" r="15.9155" pathLength="100"></circle>
-                <circle class="donut-indicator" cx="18" cy="18" r="15.9155" pathLength="100"></circle>
+              <svg viewBox="-2 -2 40 40" class="donut-svg" aria-label="Coincidencia con Job Description" overflow="visible">
+                <circle class="donut-track"     cx="18" cy="18" r="15" pathLength="100"></circle>
+                <circle class="donut-indicator" cx="18" cy="18" r="15" pathLength="100"></circle>
               </svg>
               <div class="donut-label">{{ score_jd|default(0, true)|int }}%</div>
             </div>
@@ -229,9 +225,9 @@
           <!-- Donut ATS -->
           <div class="donut" data-score="{{ score_ats|default(0, true)|int }}">
             <div class="donut-wrap">
-              <svg viewBox="0 0 36 36" class="donut-svg" aria-label="Coincidencia con Plantilla CV ATS">
-                <circle class="donut-track"     cx="18" cy="18" r="15.9155" pathLength="100"></circle>
-                <circle class="donut-indicator" cx="18" cy="18" r="15.9155" pathLength="100"></circle>
+              <svg viewBox="-2 -2 40 40" class="donut-svg" aria-label="Coincidencia con Plantilla CV ATS" overflow="visible">
+                <circle class="donut-track"     cx="18" cy="18" r="15" pathLength="100"></circle>
+                <circle class="donut-indicator" cx="18" cy="18" r="15" pathLength="100"></circle>
               </svg>
               <div class="donut-label">{{ score_ats|default(0, true)|int }}%</div>
             </div>
