@@ -35,6 +35,13 @@
   .donut { cursor: help; }
 
   #dropzone { border-style: dashed; }
+
+  #jobdesc {
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+  }
 </style>
 {% endblock %}
 
@@ -72,10 +79,12 @@
             <div class="form-text">Solo PDF/DOCX. Realizamos controles básicos de seguridad.</div>
           </div>
 
-          <div class="mb-3">
-            <label class="form-label">Pega la descripción del puesto:</label>
-            <textarea name="jobdesc" class="form-control" rows="6" required></textarea>
+          <div class="d-flex justify-content-between mb-1">
+              <label for="job_desc">Pega la descripción del puesto:</label>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="clear-desc">Limpiar</button>
           </div>
+          <textarea id="job_desc" name="job_desc" maxlength="4000" style="height:200px; resize: vertical; overflow-y:auto; width:100%"></textarea>
+          <small class="text-muted">Máximo 4000 caracteres.</small>
 
           <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Analizar</button>
         </form>
@@ -380,6 +389,7 @@
     });
   }
 })();
+
 (function () {
   // Inicializar tooltips Bootstrap
   var triggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -387,6 +397,54 @@
     new bootstrap.Tooltip(el, { container: 'body', trigger: 'hover focus' });
   });
 })();
+
+(function(){
+  var ta = document.getElementById('jobdesc');
+  var btnClear = document.getElementById('btn-clear-jobdesc');
+  if (!ta) return;
+
+  var KEY = 'cvms_jobdesc';
+
+  // 1) Inicializa desde localStorage si el servidor no trajo contenido
+  // (Si el servidor pintó `{{ jobdesc }}`, lo respetamos)
+  if (!ta.value.trim()) {
+    var saved = localStorage.getItem(KEY);
+    if (saved) ta.value = saved;
+  }
+
+  // 2) Guarda en localStorage en tiempo real
+  ta.addEventListener('input', function(){
+    try { localStorage.setItem(KEY, ta.value); } catch(e) {}
+  });
+
+  // 3) Botón limpiar: borra textarea y storage
+  if (btnClear) {
+    btnClear.addEventListener('click', function(){
+      ta.value = '';
+      try { localStorage.removeItem(KEY); } catch(e) {}
+      ta.focus();
+    });
+  }
+
+  // 4) (Opcional) Antes de enviar, aseguramos guardar lo último
+  var frm = ta.closest('form');
+  if (frm) {
+    frm.addEventListener('submit', function(){
+      try { localStorage.setItem(KEY, ta.value); } catch(e) {}
+    });
+  }
+})();
+</script>
+
+<small id="char-count" class="text-muted">0/4000</small>
+
+<script>
+const textarea = document.getElementById("jobdesc");
+const counter = document.getElementById("char-count");
+
+textarea.addEventListener("input", function() {
+    counter.textContent = `${this.value.length}/4000`;
+});
 </script>
 {% endblock %}
 

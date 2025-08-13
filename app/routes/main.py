@@ -159,7 +159,8 @@ def index():
                 ats_details=ats_details,      
                 model_used=model_used,
                 exec_id=ex.id,
-                max_mb=MAX_MB
+                max_mb=MAX_MB,
+                jobdesc=jobdesc
             ))
             resp.headers["Content-Type"] = "text/html; charset=utf-8"
             return resp
@@ -174,7 +175,7 @@ def index():
                            score_jd=None, score_ats=None,
                            ats_details=None,
                            model_used=None, exec_id=None,
-                           max_mb=MAX_MB)
+                           max_mb=MAX_MB, jobdesc=None)
 
 @bp.route('/feedback', methods=['POST'])
 def leave_comment():
