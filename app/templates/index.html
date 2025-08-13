@@ -34,6 +34,11 @@
 
   .donut { cursor: help; }
 
+  .donut-wrap { background: #fff; }
+  @media (max-width: 767.98px){
+    .donut-wrap { margin-bottom: .5rem; }
+  }
+
   #dropzone { border-style: dashed; }
 
   #jobdesc {
@@ -109,99 +114,61 @@
   <!-- Panel derecho -->
   <div class="col-12 col-lg-6">
     <div class="card p-4 shadow-sm h-100 d-flex align-items-stretch">
-      {% if score_jd is not none and score_ats is not none %}
-        <div class="row w-100 text-center">
-          <div class="col-6 mb-3">
-            <div
-              class="donut"
-              data-score="{{ score_jd|int }}"
-              data-bs-toggle="tooltip"
-              data-bs-html="true"
-              title="
-                <strong>Coincidencia con la Job Description</strong><br>
-                Compara tu CV con la descripción del puesto usando
-                {% if model_used == 1 %}OpenAI GPT-4o{% elif model_used == 2 %}Gemini 1.5 Flash{% else %}el modelo seleccionado{% endif %}.<br>
-                <em>Consejo:</em> apunta a ≥ 70%.
-              ">
-            </div>
-            <div class="fw-semibold mt-2">Coincidencia JD</div>
-          </div>
+      <div class="w-100">
+        <h5 class="mb-3">Lineamientos para subir tu CV</h5>
+        <ul class="small mb-3">
+          <li>Formato: <strong>PDF o DOCX</strong></li>
+          <li>Idioma: <strong>Español o Inglés</strong></li>
+          <li>Texto legible (no imagen escaneada)</li>
+          <li>Tamaño máximo: <strong>{{ max_mb }} MB</strong></li>
+          <li>Solo el CV (no adjuntes otros documentos)</li>
+          <li>
+            <a class="link-primary" href="{{ url_for('static', filename='docs/Plantilla_CV_ATS_STAR.docx') }}" download>
+              Descargar Plantilla CV ATS
+            </a>
+          </li>
+        </ul>
 
-          <div class="col-6 mb-3">
-            <div
-              class="donut"
-              data-score="{{ score_ats|int }}"
-              data-bs-toggle="tooltip"
-              data-bs-html="true"
-              title="
-                <strong>Estructura ATS del CV</strong><br>
-                Secciones detectadas: {{ ats_details.sections_found if ats_details else 0 }}/5<br>
-                Páginas: {{ ats_details.pages if ats_details else '-' }}{% if ats_details %} {% if ats_details.pages <= 2 %}(OK){% elif ats_details.pages == 3 %}(justo){% else %}(exceso){% endif %}{% endif %}<br>
-                Imágenes: {{ ats_details.images if ats_details else 0 }} (evítalas)<br>
-                Tablas: {{ ats_details.tables if ats_details else 0 }} (evítalas)<br>
-                Idioma CV: {% if ats_details and ats_details.lang_ok %}Inglés{% else %}Español/otro{% endif %}.
-              ">
-            </div>
-            <div class="fw-semibold mt-2">Coincidencia Plantilla ATS</div>
-          </div>
-        </div>
-      {% else %}
-        <div class="w-100">
-          <h5 class="mb-3">Lineamientos para subir tu CV</h5>
-          <ul class="small mb-3">
-            <li>Formato: <strong>PDF o DOCX</strong></li>
-            <li>Idioma: <strong>Español o Inglés</strong></li>
-            <li>Texto legible (no imagen escaneada)</li>
-            <li>Tamaño máximo: <strong>{{ max_mb }} MB</strong></li>
-            <li>Solo el CV (no adjuntes otros documentos)</li>
-            <li>
-              <a class="link-primary" href="{{ url_for('static', filename='docs/Plantilla_CV_ATS_STAR.docx') }}" download>
-                Descargar Plantilla CV ATS
-              </a>
-            </li>
-          </ul>
+        <h6 class="mt-3">Recomendaciones ATS</h6>
+        <ul class="small">
+          <li><strong>1–2 páginas</strong> (junior 1 pág., senior hasta 2).</li>
+          <li>Tipografías seguras: Arial, Calibri, Helvetica, Verdana.</li>
+          <li><strong>Evita</strong> imágenes, logos, tablas y columnas.</li>
+          <li>Usa encabezados simples (H1/H2) y bullets estándar.</li>
+          <li>No uses gráficos incrustados ni íconos como texto.</li>
+        </ul>
 
-          <h6 class="mt-3">Recomendaciones ATS</h6>
-          <ul class="small">
-            <li><strong>1–2 páginas</strong> (junior 1 pág., senior hasta 2).</li>
-            <li>Tipografías seguras: Arial, Calibri, Helvetica, Verdana.</li>
-            <li><strong>Evita</strong> imágenes, logos, tablas y columnas.</li>
-            <li>Usa encabezados simples (H1/H2) y bullets estándar.</li>
-            <li>No uses gráficos incrustados ni íconos como texto.</li>
-          </ul>
+        <h6 class="mt-3">Títulos / Secciones equivalentes aceptadas por ATS</h6>
+        <p class="small text-muted mb-2">Puedes usar cualquiera de estos nombres; el sistema los reconocerá como equivalentes.</p>
+        <ul class="small mb-3">
+          <li>
+            <strong>Perfil profesional</strong> → Resumen profesional, Resumen, Objetivo(s), <em>Summary</em>, <em>Professional Summary</em>, <em>Profile</em>, <em>Objective</em>.
+          </li>
+          <li>
+            <strong>Experiencia laboral</strong> → Experiencia profesional, Experiencia, <em>Work Experience</em>, <em>Employment History</em>, <em>Career History</em>.
+          </li>
+          <li>
+            <strong>Educación</strong> → Formación académica, <em>Education</em>, <em>Academic Background</em>.
+          </li>
+          <li>
+            <strong>Habilidades</strong> → Competencias, <em>Skills</em>, <em>Hard Skills</em>, <em>Soft Skills</em>, <em>Technical Skills</em>.
+          </li>
+          <li>
+            <strong>Idiomas</strong> → <em>Languages</em>.
+          </li>
+        </ul>
 
-          <h6 class="mt-3">Títulos / Secciones equivalentes aceptadas por ATS</h6>
-          <p class="small text-muted mb-2">Puedes usar cualquiera de estos nombres; el sistema los reconocerá como equivalentes.</p>
-          <ul class="small mb-3">
-            <li>
-              <strong>Perfil profesional</strong> → Resumen profesional, Resumen, Objetivo(s), <em>Summary</em>, <em>Professional Summary</em>, <em>Profile</em>, <em>Objective</em>.
-            </li>
-            <li>
-              <strong>Experiencia laboral</strong> → Experiencia profesional, Experiencia, <em>Work Experience</em>, <em>Employment History</em>, <em>Career History</em>.
-            </li>
-            <li>
-              <strong>Educación</strong> → Formación académica, <em>Education</em>, <em>Academic Background</em>.
-            </li>
-            <li>
-              <strong>Habilidades</strong> → Competencias, <em>Skills</em>, <em>Hard Skills</em>, <em>Soft Skills</em>, <em>Technical Skills</em>.
-            </li>
-            <li>
-              <strong>Idiomas</strong> → <em>Languages</em>.
-            </li>
-          </ul>
-
-          <h6 class="mt-3">Recomendación: usa el formato STAR en tu experiencia</h6>
-          <p class="small mb-1">
-            El método <strong>STAR</strong> ayuda a redactar logros claros y medibles:
-          </p>
-          <ul class="small mb-0">
-            <li><strong>S</strong>ituación: contexto o problema.</li>
-            <li><strong>T</strong>area: objetivo o responsabilidad.</li>
-            <li><strong>A</strong>cción: qué hiciste específicamente.</li>
-            <li><strong>R</strong>esultado: impacto medible (%, tiempos, ahorros, etc.).</li>
-          </ul>
-        </div>
-      {% endif %}
+        <h6 class="mt-3">Recomendación: usa el formato STAR en tu experiencia</h6>
+        <p class="small mb-1">
+          El método <strong>STAR</strong> ayuda a redactar logros claros y medibles:
+        </p>
+        <ul class="small mb-0">
+          <li><strong>S</strong>ituación: contexto o problema.</li>
+          <li><strong>T</strong>area: objetivo o responsabilidad.</li>
+          <li><strong>A</strong>cción: qué hiciste específicamente.</li>
+          <li><strong>R</strong>esultado: impacto medible (%, tiempos, ahorros, etc.).</li>
+        </ul>
+      </div>      
     </div>
   </div>
 
@@ -221,6 +188,65 @@
         {% endif %}
       </div>
     </div>
+        <!-- ANILLOS DE PUNTAJE -->
+    <div class="row g-3 my-2">
+      <div class="col-12 col-md-6">
+        <div class="donut-wrap text-center p-3 border rounded-3">
+          <div class="donut"
+               data-score="{{ score_jd|default(0, true)|int }}"
+               style="--angle:0deg; --color:#6c757d;
+                      width:140px; height:140px; margin:0 auto; position:relative;">
+            <!-- anillo -->
+            <svg viewBox="0 0 36 36" style="width:100%; height:100%;">
+              <path d="M18 2.0845
+                       a 15.9155 15.9155 0 0 1 0 31.831
+                       a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none" stroke="#eee" stroke-width="3"/>
+              <path d="M18 2.0845
+                       a 15.9155 15.9155 0 0 1 0 31.831"
+                    fill="none" stroke="var(--color)" stroke-width="3"
+                    stroke-linecap="round"
+                    style="stroke-dasharray: calc(var(--angle) / 3.6) 100" />
+            </svg>
+            <!-- etiqueta central -->
+            <div class="donut-label"
+                 style="position:absolute; inset:0; display:flex;
+                        align-items:center; justify-content:center; font-weight:700;">
+              {{ score_jd|default(0, true)|int }}%
+            </div>
+          </div>
+          <div class="mt-2 fw-semibold">Coincidencia con Job Description</div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <div class="donut-wrap text-center p-3 border rounded-3">
+          <div class="donut"
+               data-score="{{ score_ats|default(0, true)|int }}"
+               style="--angle:0deg; --color:#6c757d;
+                      width:140px; height:140px; margin:0 auto; position:relative;">
+            <svg viewBox="0 0 36 36" style="width:100%; height:100%;">
+              <path d="M18 2.0845
+                       a 15.9155 15.9155 0 0 1 0 31.831
+                       a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none" stroke="#eee" stroke-width="3"/>
+              <path d="M18 2.0845
+                       a 15.9155 15.9155 0 0 1 0 31.831"
+                    fill="none" stroke="var(--color)" stroke-width="3"
+                    stroke-linecap="round"
+                    style="stroke-dasharray: calc(var(--angle) / 3.6) 100" />
+            </svg>
+            <div class="donut-label"
+                 style="position:absolute; inset:0; display:flex;
+                        align-items:center; justify-content:center; font-weight:700;">
+              {{ score_ats|default(0, true)|int }}%
+            </div>
+          </div>
+          <div class="mt-2 fw-semibold">Coincidencia con Plantilla CV ATS</div>
+        </div>
+      </div>
+    </div>
+
     <div>{{ feedback|safe }}</div>
     <hr class="my-4">
     <h5 class="mb-2">Estructura ATS detectada</h5>
@@ -310,12 +336,13 @@
 {% block extra_js %}
 <script>
 (function () {
-  // --- Donuts (si los usas) ---
+  // Inicializa/anima donuts
   var donuts = document.querySelectorAll('.donut');
   donuts.forEach(function(el){
     var s = parseInt(el.getAttribute('data-score') || '0', 10);
     s = Math.max(0, Math.min(100, s));
     var deg = s * 3.6;
+    // colores por umbral
     var color = (s >= 80) ? '#28a745' : (s >= 50 ? '#ffc107' : '#dc3545');
     el.style.setProperty('--angle', deg + 'deg');
     el.style.setProperty('--color', color);
