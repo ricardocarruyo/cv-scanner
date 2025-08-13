@@ -208,15 +208,15 @@
       </div>
 
       <!-- ATS -->
-      <div class="donut" data-score="{{ score_jd|default(0, true)|int }}">
+      <div class="donut" data-score="{{ score_ats|default(0, true)|int }}">
         <div class="donut-wrap">
-          <svg viewBox="0 0 36 36" class="donut-svg" aria-label="Coincidencia con Job Description">
+          <svg viewBox="0 0 36 36" class="donut-svg" aria-label="Coincidencia con Plantilla CV ATS">
             <circle class="donut-track"     cx="18" cy="18" r="15.9155" pathLength="100"></circle>
             <circle class="donut-indicator" cx="18" cy="18" r="15.9155" pathLength="100"></circle>
           </svg>
-          <div class="donut-label">{{ score_jd|default(0, true)|int }}%</div>
+          <div class="donut-label">{{ score_ats|default(0, true)|int }}%</div>
         </div>
-        <div class="small text-muted mt-2">Coincidencia con Job Description</div>
+        <div class="small text-muted mt-2">Coincidencia con Plantilla CV ATS</div>
       </div>
     </div>
 
