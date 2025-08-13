@@ -9,34 +9,26 @@
   .score-label { position: absolute; bottom: 8%; left: 50%; transform: translateX(-50%); font-size: 1.75rem; font-weight: 700; }
   .model-badge { font-size: .9rem; }
 
-  .donut {
-    --size: 150px;
-    --track: #e9ecef;
-    --ok: #28a745;
-    --mid: #ffc107;
-    --bad: #dc3545;
-    width: var(--size);
-    height: var(--size);
-    border-radius: 50%;
-    background:
-      conic-gradient(var(--color, #28a745) 0deg, var(--color, #28a745) var(--angle, 0deg), var(--track) var(--angle, 0deg));
-    position: relative;
-    margin: 0 auto;
+  .donut { position: relative; width: 140px; height: 140px; margin: 0 auto; }
+  .donut-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .donut-track {
+    fill: none;
+    stroke: #eee;
+    stroke-width: 3;
   }
-  .donut::after{
-    content: attr(data-score) '%';
-    position:absolute; inset: 0;
-    display:grid; place-items:center;
-    font-weight: 700; color:#212529;
-    background:
-      radial-gradient(circle at center, #fff 0 58%, transparent 59%);
-  }  
-
-  .donut { cursor: help; }
-
-  .donut-wrap { background: #fff; }
-  @media (max-width: 767.98px){
-    .donut-wrap { margin-bottom: .5rem; }
+  .donut-indicator {
+    fill: none;
+    stroke: var(--donut-color, #6c757d);
+    stroke-width: 3.2;
+    stroke-linecap: round;
+    /* el perímetro normalizado es 100 → stroke-dasharray: X 100 */
+    stroke-dasharray: var(--dash, 0) 100;
+    transition: stroke-dasharray .6s ease, stroke .3s ease;
+  }
+  .donut-label {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.05rem;
   }
 
   #dropzone { border-style: dashed; }
@@ -187,60 +179,46 @@
           <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('history.download_pdf', exec_id=exec_id) }}"><i class="bi bi-file-earmark-arrow-down"></i> Descargar PDF</a>
         {% endif %}
       </div>
-    </div>
-        <!-- ANILLOS DE PUNTAJE -->
+    </div>        
+    <!-- ANILLOS DE PUNTAJE (0–100 con color y tooltip correcto) -->
     <div class="row g-3 my-2">
+      <!-- JD -->
       <div class="col-12 col-md-6">
         <div class="donut-wrap text-center p-3 border rounded-3">
-          <div class="donut"
-               data-score="{{ score_jd|default(0, true)|int }}"
-               style="--angle:0deg; --color:#6c757d;
-                      width:140px; height:140px; margin:0 auto; position:relative;">
-            <!-- anillo -->
-            <svg viewBox="0 0 36 36" style="width:100%; height:100%;">
-              <path d="M18 2.0845
-                       a 15.9155 15.9155 0 0 1 0 31.831
-                       a 15.9155 15.9155 0 0 1 0 -31.831"
-                    fill="none" stroke="#eee" stroke-width="3"/>
-              <path d="M18 2.0845
-                       a 15.9155 15.9155 0 0 1 0 31.831"
-                    fill="none" stroke="var(--color)" stroke-width="3"
-                    stroke-linecap="round"
-                    style="stroke-dasharray: calc(var(--angle) / 3.6) 100" />
+          <div class="donut" data-score="{{ score_jd|default(0, true)|int }}">
+            <svg viewBox="0 0 36 36" class="donut-svg" aria-label="Coincidencia con Job Description">
+              <title>Coincidencia con Job Description: {{ score_jd|default(0, true)|int }}%</title>
+              <!-- fondo -->
+              <path class="donut-track"
+                    d="M18 2.0845
+                      a 15.9155 15.9155 0 0 1 0 31.831
+                      a 15.9155 15.9155 0 0 1 0 -31.831"/>
+              <!-- progreso -->
+              <path class="donut-indicator"
+                    d="M18 2.0845
+                      a 15.9155 15.9155 0 0 1 0 31.831"/>
             </svg>
-            <!-- etiqueta central -->
-            <div class="donut-label"
-                 style="position:absolute; inset:0; display:flex;
-                        align-items:center; justify-content:center; font-weight:700;">
-              {{ score_jd|default(0, true)|int }}%
-            </div>
+            <div class="donut-label fw-bold">{{ score_jd|default(0, true)|int }}%</div>
           </div>
           <div class="mt-2 fw-semibold">Coincidencia con Job Description</div>
         </div>
       </div>
 
+      <!-- ATS -->
       <div class="col-12 col-md-6">
         <div class="donut-wrap text-center p-3 border rounded-3">
-          <div class="donut"
-               data-score="{{ score_ats|default(0, true)|int }}"
-               style="--angle:0deg; --color:#6c757d;
-                      width:140px; height:140px; margin:0 auto; position:relative;">
-            <svg viewBox="0 0 36 36" style="width:100%; height:100%;">
-              <path d="M18 2.0845
-                       a 15.9155 15.9155 0 0 1 0 31.831
-                       a 15.9155 15.9155 0 0 1 0 -31.831"
-                    fill="none" stroke="#eee" stroke-width="3"/>
-              <path d="M18 2.0845
-                       a 15.9155 15.9155 0 0 1 0 31.831"
-                    fill="none" stroke="var(--color)" stroke-width="3"
-                    stroke-linecap="round"
-                    style="stroke-dasharray: calc(var(--angle) / 3.6) 100" />
+          <div class="donut" data-score="{{ score_ats|default(0, true)|int }}">
+            <svg viewBox="0 0 36 36" class="donut-svg" aria-label="Coincidencia con Plantilla CV ATS">
+              <title>Coincidencia con Plantilla CV ATS: {{ score_ats|default(0, true)|int }}%</title>
+              <path class="donut-track"
+                    d="M18 2.0845
+                      a 15.9155 15.9155 0 0 1 0 31.831
+                      a 15.9155 15.9155 0 0 1 0 -31.831"/>
+              <path class="donut-indicator"
+                    d="M18 2.0845
+                      a 15.9155 15.9155 0 0 1 0 31.831"/>
             </svg>
-            <div class="donut-label"
-                 style="position:absolute; inset:0; display:flex;
-                        align-items:center; justify-content:center; font-weight:700;">
-              {{ score_ats|default(0, true)|int }}%
-            </div>
+            <div class="donut-label fw-bold">{{ score_ats|default(0, true)|int }}%</div>
           </div>
           <div class="mt-2 fw-semibold">Coincidencia con Plantilla CV ATS</div>
         </div>
@@ -336,17 +314,65 @@
 {% block extra_js %}
 <script>
 (function () {
-  // Inicializa/anima donuts
-  var donuts = document.querySelectorAll('.donut');
-  donuts.forEach(function(el){
-    var s = parseInt(el.getAttribute('data-score') || '0', 10);
-    s = Math.max(0, Math.min(100, s));
-    var deg = s * 3.6;
-    // colores por umbral
-    var color = (s >= 80) ? '#28a745' : (s >= 50 ? '#ffc107' : '#dc3545');
-    el.style.setProperty('--angle', deg + 'deg');
-    el.style.setProperty('--color', color);
-  });
+  // Inicializa colores y dasharray 0–100
+  // Easing suave
+  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+
+  function setDonutColor(el, score){
+    const color = (score >= 75) ? '#28a745' : (score >= 50 ? '#ffc107' : '#dc3545');
+    el.style.setProperty('--donut-color', color);
+  }
+
+  function animateDonut(el, target, duration){
+    // Respeta "prefiere reducir movimientos"
+    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced || duration <= 0) {
+      el.style.setProperty('--dash', String(target));
+      setDonutColor(el, target);
+      return;
+    }
+
+    const start = performance.now();
+    const from = 0;
+    const to = Math.max(0, Math.min(100, target));
+
+    function tick(now){
+      const t = Math.min(1, (now - start) / duration);
+      const eased = easeOutCubic(t);
+      const val = from + (to - from) * eased;
+      el.style.setProperty('--dash', String(val));
+      setDonutColor(el, to);
+      if (t < 1) requestAnimationFrame(tick);
+    }
+    // arranca en 0
+    el.style.setProperty('--dash', '0');
+    requestAnimationFrame(tick);
+  }
+
+  // Observa cuando los anillos entran al viewport
+  const donuts = document.querySelectorAll('.donut');
+  if (!donuts.length) return;
+
+  // Si no hay IntersectionObserver, anima inmediatamente
+  if (!('IntersectionObserver' in window)) {
+    donuts.forEach(d => {
+      const s = parseInt(d.getAttribute('data-score') || '0', 10) || 0;
+      animateDonut(d, s, 900);
+    });
+    return;
+  }
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target;
+      const score = parseInt(el.getAttribute('data-score') || '0', 10) || 0;
+      animateDonut(el, score, 900);
+      io.unobserve(el); // solo una vez
+    });
+  }, { threshold: 0.25 });
+
+  donuts.forEach(d => io.observe(d));
 
   // --- Drag & Drop / File input ---
   var dz = document.getElementById('dropzone');
