@@ -32,6 +32,8 @@
   }
 
   #dropzone { border-style: dashed; }
+  .dropzone.dragover { background-color:#f8f9fa; border-color:#0d6efd; }
+  .dropzone.ok { border-color:#198754; background: var(--bs-success-bg-subtle, #eaf6ed); }
 
   #jobdesc {
     max-height: 220px;        /* límite para evitar que crezca infinito */
@@ -65,16 +67,19 @@
           <div class="mb-2">
             <label class="form-label">Sube tu CV (PDF o DOCX, máx. {{ max_mb or 2 }} MB):</label>
 
-            <input id="file-input" type="file" name="cv" accept=".pdf,.docx" hidden required>
+            <!-- Uploader -->
+            <input id="file-input" name="cv" type="file" accept=".pdf,.docx" class="visually-hidden">
 
-            <div id="dropzone" class="border border-2 rounded-3 p-4 text-center bg-white"
-                style="cursor:pointer; border-style:dashed;">
-              <div class="mb-2 fw-semibold">Arrastra y suelta tu archivo aquí</div>
+            <div id="dropzone"
+                class="dropzone border border-2 rounded-3 p-4 text-center bg-white"
+                style="border-style:dashed; cursor:pointer;">
+              <div class="fw-semibold">Arrastra y suelta tu archivo aquí</div>
               <div class="text-muted small">o haz clic para elegir desde tu computadora</div>
-              <div id="file-name" class="mt-2 small text-secondary"></div>
+              <div id="file-name" class="small mt-2 text-secondary"></div>
             </div>
 
             <div class="form-text">Solo PDF/DOCX. Realizamos controles básicos de seguridad.</div>
+
           </div>
 
           <div class="mb-3">
@@ -314,8 +319,9 @@
 {% block extra_js %}
 <script>
 (function () {
-  // Inicializa colores y dasharray 0–100
-  // Easing suave
+  // ---------------------------
+  // 1) DONUTS (animación + color)
+  // ---------------------------
   function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
 
   function setDonutColor(el, score){
@@ -324,201 +330,202 @@
   }
 
   function animateDonut(el, target, duration){
-    // Respeta "prefiere reducir movimientos"
     const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const to = Math.max(0, Math.min(100, parseInt(target || 0, 10)));
     if (prefersReduced || duration <= 0) {
-      el.style.setProperty('--dash', String(target));
-      setDonutColor(el, target);
+      el.style.setProperty('--dash', String(to));
+      setDonutColor(el, to);
       return;
     }
-
     const start = performance.now();
-    const from = 0;
-    const to = Math.max(0, Math.min(100, target));
-
+    el.style.setProperty('--dash', '0');
     function tick(now){
       const t = Math.min(1, (now - start) / duration);
       const eased = easeOutCubic(t);
-      const val = from + (to - from) * eased;
+      const val = 0 + (to - 0) * eased;
       el.style.setProperty('--dash', String(val));
-      setDonutColor(el, to);
       if (t < 1) requestAnimationFrame(tick);
+      else setDonutColor(el, to);
     }
-    // arranca en 0
-    el.style.setProperty('--dash', '0');
     requestAnimationFrame(tick);
   }
 
-  // Observa cuando los anillos entran al viewport
-  const donuts = document.querySelectorAll('.donut');
-  if (!donuts.length) return;
+  (function initDonuts(){
+    const donuts = document.querySelectorAll('.donut');
+    if (!donuts.length) return;
 
-  // Si no hay IntersectionObserver, anima inmediatamente
-  if (!('IntersectionObserver' in window)) {
-    donuts.forEach(d => {
-      const s = parseInt(d.getAttribute('data-score') || '0', 10) || 0;
-      animateDonut(d, s, 900);
-    });
-    return;
-  }
-
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
-      const el = entry.target;
-      const score = parseInt(el.getAttribute('data-score') || '0', 10) || 0;
-      animateDonut(el, score, 900);
-      io.unobserve(el); // solo una vez
-    });
-  }, { threshold: 0.25 });
-
-  donuts.forEach(d => io.observe(d));
-
-  // --- Drag & Drop / File input ---
-  var dz = document.getElementById('dropzone');
-  var fi = document.getElementById('file-input');
-  var fn = document.getElementById('file-name');
-  if (!dz || !fi) return;
-
-  function humanKB(bytes){ return Math.round((bytes||0)/1024) + ' KB'; }
-
-  function showName(file){
-    if (!file) {
-      fn.textContent = '';
-      clearOK();
+    if (!('IntersectionObserver' in window)) {
+      donuts.forEach(d => animateDonut(d, d.getAttribute('data-score') || 0, 900));
       return;
     }
-    // texto en verde + check
-    fn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> ' +
-                   'Archivo: ' + file.name + ' (' + humanKB(file.size) + ')';
-    fn.classList.remove('text-secondary');
-    fn.classList.add('text-success');
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const el = entry.target;
+        animateDonut(el, el.getAttribute('data-score') || 0, 900);
+        io.unobserve(el);
+      });
+    }, { threshold: 0.25 });
 
-    // resalta el recuadro en verde suave
-    dz.classList.add('border-success','bg-success-subtle');
-  }
+    donuts.forEach(d => io.observe(d));
+  })();
 
-  function validarExt(file){
-    if (!/\.(pdf|docx)$/i.test(file.name)) {
-      alert('Formato no permitido. Solo PDF o DOCX.');
-      return false;
+
+  // -------------------------------------------
+  // 2) UPLOADER (click + drag&drop con feedback)
+  // -------------------------------------------
+  (function initUploader(){
+    const dz = document.getElementById('dropzone');
+    const fi = document.getElementById('file-input');
+    const fn = document.getElementById('file-name');
+    if (!dz || !fi || !fn) return;
+
+    const MAX_MB = 2; // cambia si subís el límite real
+    const MAX_BYTES = MAX_MB * 1024 * 1024;
+
+    function humanKB(bytes){ return Math.max(1, Math.round((bytes||0)/1024)) + ' KB'; }
+
+    function clearVisual() {
+      dz.classList.remove('ok','dragover','bg-success-subtle','border-success','bg-light');
+      fn.classList.remove('text-success');
+      fn.classList.add('text-secondary');
+      fn.textContent = '';
     }
-    return true;
-  }
 
-  // Asigna un archivo al input usando DataTransfer (camino “drop”)
-  function setFileFromDrop(file){
-    if (!file || !validarExt(file)) return;
-    try {
-      var dt = new DataTransfer();
-      dt.items.add(file);
-      fi.files = dt.files;          // ✅ asignamos FileList válido
-      showName(file);
-    } catch (e) {
-      console.warn('No se pudo asignar el archivo vía DataTransfer', e);
-      // Fallback: muestra el nombre y pide que elija por click
-      showName(file);
-      alert('Tu navegador no permite asignar el archivo automáticamente. Haz clic para seleccionarlo.');
+    function showOK(file) {
+      fn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> ' +
+                     'Archivo: ' + file.name + ' (' + humanKB(file.size) + ')';
+      fn.classList.remove('text-secondary');
+      fn.classList.add('text-success');
+      dz.classList.add('ok','border-success','bg-success-subtle');
     }
-  }
 
-  // Click en zona -> abre selector nativo
-  dz.addEventListener('click', function(){ fi.click(); });
-
-  // Selector manual: NO reasignamos fi.files, solo validamos y mostramos
-  fi.addEventListener('change', function(e){
-    var f = e.target.files && e.target.files[0];
-    if (!f) { showName(null); return; }
-    if (!validarExt(f)) { fi.value = ''; showName(null); return; }
-    showName(f);
-  });
-
-  // Efectos visuales de drag
-  dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('bg-light'); });
-  dz.addEventListener('dragleave', function(){ dz.classList.remove('bg-light'); });
-
-  // Drop
-  dz.addEventListener('drop', function(e){
-    e.preventDefault();
-    dz.classList.remove('bg-light');
-    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    setFileFromDrop(f);
-  });
-
-  // Validación antes de enviar (por si quedó sin archivo)
-  var frm = dz.closest('form');
-  if (frm) {
-    frm.addEventListener('submit', function(e){
-      if (!fi.files || fi.files.length === 0) {
-        e.preventDefault();
-        alert('Por favor, selecciona un archivo PDF o DOCX.');
+    function validar(file) {
+      if (!file) return false;
+      if (!/\.(pdf|docx)$/i.test(file.name)) {
+        alert('Formato no permitido. Solo PDF o DOCX.');
+        return false;
       }
+      if (file.size > MAX_BYTES) {
+        alert('El archivo supera el límite de ' + MAX_MB + ' MB.');
+        return false;
+      }
+      return true;
+    }
+
+    function setFromDrop(file){
+      if (!validar(file)) return;
+      try {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fi.files = dt.files;
+        showOK(file);
+      } catch (e) {
+        console.warn('DataTransfer no disponible. Fallback:', e);
+        showOK(file);
+        alert('Tu navegador no permite asignar el archivo automáticamente. Haz clic para seleccionarlo.');
+      }
+    }
+
+    // click en zona -> abre selector
+    dz.addEventListener('click', function(e){ e.preventDefault(); fi.click(); });
+
+    // selector manual
+    fi.addEventListener('change', function(e){
+      const f = e.target.files && e.target.files[0];
+      if (!f) { clearVisual(); return; }
+      if (!validar(f)) { fi.value = ''; clearVisual(); return; }
+      showOK(f);
     });
-  }
-})();
 
-(function () {
-  // Inicializar tooltips Bootstrap
-  var triggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-  triggers.forEach(function (el) {
-    new bootstrap.Tooltip(el, { container: 'body', trigger: 'hover focus' });
-  });
-})();
+    // drag UI
+    dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('dragover','bg-light'); });
+    dz.addEventListener('dragenter', function(e){ e.preventDefault(); dz.classList.add('dragover','bg-light'); });
+    dz.addEventListener('dragleave', function(){ dz.classList.remove('dragover','bg-light'); });
 
-(function(){
-  var ta = document.getElementById('jobdesc');
-  var btnClear = document.getElementById('btn-clear-jobdesc');
-  if (!ta) return;
-
-  var KEY = 'cvms_jobdesc';
-
-  // 1) Inicializa desde localStorage si el servidor no trajo contenido
-  // (Si el servidor pintó `{{ jobdesc }}`, lo respetamos)
-  if (!ta.value.trim()) {
-    var saved = localStorage.getItem(KEY);
-    if (saved) ta.value = saved;
-  }
-
-  // 2) Guarda en localStorage en tiempo real
-  ta.addEventListener('input', function(){
-    try { localStorage.setItem(KEY, ta.value); } catch(e) {}
-  });
-
-  // 3) Botón limpiar: borra textarea y storage
-  if (btnClear) {
-    btnClear.addEventListener('click', function(){
-      ta.value = '';
-      try { localStorage.removeItem(KEY); } catch(e) {}
-      ta.focus();
+    dz.addEventListener('drop', function(e){
+      e.preventDefault();
+      dz.classList.remove('dragover','bg-light');
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      setFromDrop(f);
     });
-  }
 
-  // 4) (Opcional) Antes de enviar, aseguramos guardar lo último
-  var frm = ta.closest('form');
-  if (frm) {
-    frm.addEventListener('submit', function(){
+    // Evita que soltar en la página reemplace el documento
+    window.addEventListener('dragover', e => e.preventDefault());
+    window.addEventListener('drop', e => e.preventDefault());
+
+    // Validación al enviar
+    const frm = dz.closest('form');
+    if (frm) {
+      frm.addEventListener('submit', function(e){
+        if (!fi.files || fi.files.length === 0) {
+          e.preventDefault();
+          alert('Por favor, selecciona un archivo PDF o DOCX.');
+        }
+      });
+    }
+  })();
+
+
+  // ----------------------------
+  // 3) Tooltips de Bootstrap
+  // ----------------------------
+  (function initTooltips(){
+    const triggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    triggers.forEach(el => { try { new bootstrap.Tooltip(el, { container: 'body', trigger: 'hover focus' }); } catch(_){} });
+  })();
+
+
+  // ----------------------------------------------------------
+  // 4) Job Description: localStorage + botón limpiar + contador
+  // ----------------------------------------------------------
+  (function initJobDesc(){
+    const ta = document.getElementById('jobdesc');
+    const btnClear = document.getElementById('btn-clear-jobdesc');
+    const counter = document.getElementById('char-count');
+    if (!ta) return;
+
+    const KEY = 'cvms_jobdesc';
+
+    // inicializa desde localStorage si el servidor no trajo contenido
+    if (!ta.value.trim()) {
+      const saved = localStorage.getItem(KEY);
+      if (saved) ta.value = saved.slice(0, 4000); // seguridad por si había más
+    }
+
+    // guarda en tiempo real
+    ta.addEventListener('input', function(){
+      if (ta.value.length > 4000) ta.value = ta.value.slice(0, 4000);
       try { localStorage.setItem(KEY, ta.value); } catch(e) {}
+      if (counter) counter.textContent = ta.value.length + '/4000';
     });
-  }
-})();
 
-(function () {
-  var ta = document.getElementById('jobdesc');
-  var counter = document.getElementById('char-count');
-  if (!ta || !counter) return;
+    // contador inicial
+    if (counter) counter.textContent = ta.value.length + '/4000';
 
-  function updateCount() {
-    counter.textContent = (ta.value.length) + "/4000";
-  }
+    // botón limpiar
+    if (btnClear) {
+      btnClear.addEventListener('click', function(){
+        ta.value = '';
+        if (counter) counter.textContent = '0/4000';
+        try { localStorage.removeItem(KEY); } catch(e) {}
+        ta.focus();
+      });
+    }
 
-  // Inicializa con el valor actual (incluyendo si lo cargó localStorage o el servidor)
-  updateCount();
+    // asegura persistencia justo antes del submit
+    const frm = ta.closest('form');
+    if (frm) {
+      frm.addEventListener('submit', function(){
+        try { localStorage.setItem(KEY, ta.value); } catch(e) {}
+      });
+    }
+  })();
 
-  // Actualiza mientras escribe
-  ta.addEventListener('input', updateCount);
 })();
 </script>
 {% endblock %}
+
 
 
 
