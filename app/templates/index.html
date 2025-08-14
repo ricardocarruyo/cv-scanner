@@ -294,41 +294,12 @@
       </div>
     {% endif %}
 
-
-    <!-- aquí sigue el contenido del análisis -->
+    <!-- Análisis -->
     <div class="mt-3">
       {{ feedback|safe }}
     </div>
 
-    <hr class="my-4">
-    <h5 class="mb-2">Estructura ATS detectada</h5>
-    <div class="row">
-      <div class="col-md-6">
-        <div class="fw-semibold">Secciones presentes ({{ ats_details.sections_found if ats_details else 0 }}/5)</div>
-        <ul class="small mb-3">
-          {% if ats_details and ats_details.sections_present %}
-            {% for s in ats_details.sections_present %}
-              <li>{{ s|title }}</li>
-            {% endfor %}
-          {% else %}
-            <li class="text-muted">No detectadas.</li>
-          {% endif %}
-        </ul>
-      </div>
-      <div class="col-md-6">
-        <div class="fw-semibold">Secciones faltantes</div>
-        <ul class="small mb-0">
-          {% if ats_details and ats_details.sections_missing %}
-            {% for s in ats_details.sections_missing %}
-              <li>{{ s|title }}</li>
-            {% endfor %}
-          {% else %}
-            <li class="text-muted">Ninguna.</li>
-          {% endif %}
-        </ul>
-      </div>
-    </div>
-
+    <!-- Lineamientas en el Reporte -->
     <hr class="my-4">
       <h5 class="mb-2">Lineamientos y equivalencias ATS</h5>
       <ul class="small mb-2">
@@ -342,6 +313,7 @@
         </li>
       </ul>
 
+      <!-- Sinonimos -->
       <div class="row">
         <div class="col-md-6">
           <div class="fw-semibold small">Secciones equivalentes aceptadas</div>
@@ -353,6 +325,8 @@
             <li><strong>Idiomas</strong> → <em>Languages</em>.</li>
           </ul>
         </div>
+        
+        <!-- Star -->
         <div class="col-md-6">
           <div class="fw-semibold small">Formato STAR para tu experiencia</div>
           <p class="small mb-1">Redacta cada logro con STAR para mejorar la lectura por ATS y por reclutadores:</p>
