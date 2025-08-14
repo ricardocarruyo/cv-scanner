@@ -45,29 +45,43 @@
 
     /* ===== Stepper ===== */
     .stepper{ --accent:#0d6efd; --muted:#dee2e6; --text:#6c757d; }
-    
-    /* Tamaño más grande del bullet y texto */
-    .step__bullet{
-      width: 42px;               /* antes 34px */
-      height: 42px;              /* antes 34px */
-      border-width: 4px;         /* antes 3px */
-      font-size: 1rem;           /* más legible */
-    }
+    .stepper--vertical{ position: absolute; top: 5.25rem; }  /* debajo del navbar */
 
-    .step__label{
-      font-size: 1rem;           /* antes .92rem */
+    .step{
+      position: relative;
+      padding-left: 2.25rem;
+      min-height: 56px;
     }
-
-    /* Más offset para que el conector no quede encima */
-    .step{ padding-left: 2.75rem; min-height: 64px; }
     .step:not(:last-child)::after{
-      left: 1.25rem;   /* centra con el nuevo bullet */
-      top: 44px;       /* debajo del bullet más grande */
-      height: calc(100% - 44px);
+      content:"";
+      position:absolute;
+      left: 1rem;              /* alineado con el centro del bullet (16px + borde) */
+      top: 36px;               /* debajo del bullet */
+      width: 2px;
+      height: calc(100% - 36px);
+      background: var(--muted);
+      border-radius: 1px;
     }
 
-    /* Un poco más de sticky para que no tape el navbar */
-    .stepper--vertical{ top: 6rem; }
+    .step__bullet{
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      border: 3px solid var(--muted);
+      background: #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      color: var(--text);
+      position:absolute;
+      left: 0; top: 0;
+      transition: all .2s ease;
+    }
+    .step__label{
+      color: var(--text);
+      font-size: .92rem;
+      line-height: 1.2;
+      margin-left: .25rem;
+    }
 
     /* Activo */
     .step.is-active .step__bullet{
