@@ -237,11 +237,62 @@
       </div>
     </div>
 
-    {% if disclaimer %}
+    <!-- disclaime -->
+    {% if v %}
       <div class="alert alert-info mt-3" role="alert">
         {{ disclaimer }}
       </div>
     {% endif %} 
+
+    <!-- Pintar Iconos -->
+    {% if ats_details %}
+      <div class="card mt-3 mb-2">
+        <div class="card-body py-3">
+          <h6 class="mb-3">Checklist ATS detectado</h6>
+          <div class="row g-3">
+            <!-- Imágenes -->
+            <div class="col-12 col-md-6 col-lg-4 d-flex align-items-center">
+              {% set ok = not ats_details.has_images %}
+              <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
+              <span>Imágenes en el CV: {{ 'No' if ok else 'Sí' }}</span>
+            </div>
+
+            <!-- Tablas / Columnas -->
+            <div class="col-12 col-md-6 col-lg-4 d-flex align-items-center">
+              {% set ok = not ats_details.has_tables_or_columns %}
+              <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
+              <span>Tablas o columnas: {{ 'No' if ok else 'Sí' }}</span>
+            </div>
+
+            <!-- Tipografía segura -->
+            <div class="col-12 col-md-6 col-lg-4 d-flex align-items-center">
+              {% if ats_details.safe_typography is none %}
+                <i class="bi bi-dash-circle-fill text-secondary me-2" data-bs-toggle="tooltip" title="No se pudo determinar"></i>
+                <span>Tipografía segura: Indeterminado</span>
+              {% else %}
+                {% set ok = ats_details.safe_typography %}
+                <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
+                <span>Tipografía segura: {{ 'Sí' if ok else 'No' }}</span>
+              {% endif %}
+            </div>
+
+            <!-- Secciones -->
+            <div class="col-12">
+              <div class="row g-2">
+                {% set present = ats_details.sections_present or [] %}
+                {% for label in ['perfil profesional','experiencia laboral','educación','habilidades','idiomas'] %}
+                  <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
+                    {% set ok = label in present %}
+                    <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
+                    <span>{{ label|capitalize }}</span>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
 
 
     <!-- aquí sigue el contenido del análisis -->
