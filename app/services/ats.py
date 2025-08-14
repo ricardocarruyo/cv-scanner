@@ -12,7 +12,7 @@ SECTION_SYNONYMS: Dict[str, List[str]] = {
     ],
     "experiencia laboral": [
         r"\bexperiencia laboral\b", r"\bexperiencia profesional\b",
-        r"\bexperiencia\b",
+        r"\bexperiencia\b", r"\bprofessional experience\b"
         r"\bwork experience\b", r"\bemployment history\b", r"\bcareer history\b"
     ],
     "educación": [
@@ -24,7 +24,7 @@ SECTION_SYNONYMS: Dict[str, List[str]] = {
         r"\bskills\b", r"\btechnical skills\b"
     ],
     "idiomas": [
-        r"\bidiomas\b", r"\blengu(as|as)\b",
+        r"\bidiomas\b",r"\bidioma\b", r"\blengu(as|as)\b",
         r"\blanguages\b"
     ],
 }
@@ -113,7 +113,7 @@ def evaluate_ats_compliance(
             safe_typography = False
     else:
         safe_typography = None  # indeterminado si no pudimos leer fuentes
-        
+
     # Preferimos docx_fonts explícito; si no, intentamos docx_meta['fonts']
     fonts_list = None
     if docx_fonts:

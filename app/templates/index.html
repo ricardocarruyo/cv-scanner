@@ -64,91 +64,94 @@
 
 {% block content %}
 <div class="row g-4">
-  <!-- STEPPER: Progreso del análisis -->
-  <div class="row g-3">
-    <div class="col-12 col-lg-3">
-      <div id="analysis-stepper" class="stepper stepper--vertical my-3"
-          data-has-feedback="{{ 1 if feedback else 0 }}">
-        <!-- Pasos -->
-        <div class="step" data-step="1">
-          <div class="step__bullet">1</div>
-          <div class="step__label">Sube tu CV</div>
-        </div>
-        <div class="step" data-step="2">
-          <div class="step__bullet">2</div>
-          <div class="step__label">Agrega el puesto</div>
-        </div>
-        <div class="step" data-step="3">
-          <div class="step__bullet">3</div>
-          <div class="step__label">Ver resultados</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-lg-9">
-        <!-- Formulario -->
-        <div class="col-12 col-lg-6">
-          <div class="card p-4 shadow-sm h-100">
-            {% if not session.get('user_email') %}
-              <div class="text-center">
-                <p class="mb-3">Para usar el analizador, primero inicia sesión con Google.</p>
-                <a class="btn btn-outline-primary" href="{{ url_for('auth.login') }}">
-                  <i class="bi bi-google"></i> Iniciar sesión con Google
-                </a>
-              </div>
-            {% else %}
-              <form method="post" enctype="multipart/form-data" action="{{ url_for('main.index') }}">
-                <div class="mb-3">
-                  <label class="form-label">Ocupación (opcional):</label>
-                  <input type="text" class="form-control" name="occupation" placeholder="Ej.: Analista de Negocio, QA, DevOps" value="{{ occupation or '' }}">
-                </div>
+  <!-- Columna izquierda: Stepper + Formulario -->
+  <div class="col-12 col-lg-6">
+    <div class="row g-3 align-items-start">
 
-                <div class="mb-2">
-                  <label class="form-label">Sube tu CV (PDF o DOCX, máx. {{ max_mb or 2 }} MB):</label>
-
-                  <!-- Uploader -->
-                  <input id="file-input" name="cv" type="file" accept=".pdf,.docx" class="visually-hidden">
-
-                  <div id="dropzone"
-                      class="dropzone border border-2 rounded-3 p-4 text-center bg-white"
-                      style="border-style:dashed; cursor:pointer;">
-                    <div class="fw-semibold">Arrastra y suelta tu archivo aquí</div>
-                    <div class="text-muted small">o haz clic para elegir desde tu computadora</div>
-                    <div id="file-name" class="small mt-2 text-secondary"></div>
-                  </div>
-
-                  <div class="form-text">Solo PDF/DOCX. Realizamos controles básicos de seguridad.</div>
-
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label">Pega la descripción del puesto:</label>
-
-                  <textarea id="jobdesc" name="jobdesc"
-                            class="form-control"
-                            rows="8"
-                            maxlength="4000"
-                            required
-                            style="overflow-y:auto; overflow-x:hidden; white-space:pre-wrap; word-wrap:break-word; max-height: 220px;">{{ jobdesc or '' }}</textarea>
-
-                  <div class="d-flex justify-content-between align-items-center mt-1">
-                    <button type="button" id="btn-clear-jobdesc" class="btn btn-sm btn-outline-secondary">
-                      <i class="bi bi-eraser"></i> Limpiar
-                    </button>
-
-                    <!-- El contador VA DENTRO del form y con un id único -->
-                    <span id="char-count" class="small text-muted">0/4000</span>
-                  </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Analizar</button>
-              </form>
-            {% endif %}
+      <!-- Stepper (vertical en desktop; lo podés ocultar en mobile si querés) -->
+      <div class="col-12 col-lg-3">
+        <div id="analysis-stepper"
+             class="stepper stepper--vertical my-3"
+             data-has-feedback="{{ 1 if feedback else 0 }}">
+          <div class="step" data-step="1">
+            <div class="step__bullet">1</div>
+            <div class="step__label">Sube tu CV</div>
+          </div>
+          <div class="step" data-step="2">
+            <div class="step__bullet">2</div>
+            <div class="step__label">Agrega el puesto</div>
+          </div>
+          <div class="step" data-step="3">
+            <div class="step__bullet">3</div>
+            <div class="step__label">Ver resultados</div>
           </div>
         </div>
+      </div>
+
+      <!-- Formulario (ocupa el resto de la columna izquierda) -->
+      <div class="col-12 col-lg-9">
+        <div class="card p-4 shadow-sm h-100">
+          {% if not session.get('user_email') %}
+            <div class="text-center">
+              <p class="mb-3">Para usar el analizador, primero inicia sesión con Google.</p>
+              <a class="btn btn-outline-primary" href="{{ url_for('auth.login') }}">
+                <i class="bi bi-google"></i> Iniciar sesión con Google
+              </a>
+            </div>
+          {% else %}
+            <form method="post" enctype="multipart/form-data" action="{{ url_for('main.index') }}">
+              <div class="mb-3">
+                <label class="form-label">Ocupación (opcional):</label>
+                <input type="text" class="form-control" name="occupation"
+                       placeholder="Ej.: Analista de Negocio, QA, DevOps"
+                       value="{{ occupation or '' }}">
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label">Sube tu CV (PDF o DOCX, máx. {{ max_mb or 2 }} MB):</label>
+
+                <!-- input real -->
+                <input id="file-input" name="cv" type="file" accept=".pdf,.docx" class="visually-hidden">
+
+                <!-- zona drag&drop -->
+                <div id="dropzone"
+                     class="dropzone border border-2 rounded-3 p-4 text-center bg-white"
+                     style="border-style:dashed; cursor:pointer;">
+                  <div class="fw-semibold">Arrastra y suelta tu archivo aquí</div>
+                  <div class="text-muted small">o haz clic para elegir desde tu computadora</div>
+                  <div id="file-name" class="small mt-2 text-secondary"></div>
+                </div>
+
+                <div class="form-text">Solo PDF/DOCX. Realizamos controles básicos de seguridad.</div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Pega la descripción del puesto:</label>
+                <textarea id="jobdesc" name="jobdesc"
+                          class="form-control"
+                          rows="8"
+                          maxlength="4000"
+                          required
+                          style="overflow-y:auto; overflow-x:hidden; white-space:pre-wrap; word-wrap:break-word; max-height:220px;">{{ jobdesc or '' }}</textarea>
+
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                  <button type="button" id="btn-clear-jobdesc" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-eraser"></i> Limpiar
+                  </button>
+                  <span id="char-count" class="small text-muted">0/4000</span>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-search"></i> Analizar
+              </button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+
     </div>
   </div>
-
-
 
   <!-- Panel derecho -->
   <div class="col-12 col-lg-6">
@@ -263,11 +266,9 @@
     </div>
 
     <!-- disclaime -->
-    {% if v %}
-      <div class="alert alert-info mt-3" role="alert">
-        {{ disclaimer }}
-      </div>
-    {% endif %} 
+    {% if disclaimer %}
+      <div class="alert alert-info mt-3">{{ disclaimer }}</div>
+    {% endif %}
 
     <!-- Pintar Iconos -->
     {% if ats_details %}
