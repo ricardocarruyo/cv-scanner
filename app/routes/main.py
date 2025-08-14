@@ -10,7 +10,7 @@ from sqlalchemy import asc                      # <-- agrega asc
 from datetime import datetime                   # <-- para timestamps
 from ..services.files import extract_pdf, extract_docx
 from ..services.ats import evaluate_ats_compliance
-from app.config import APP_VERSION, Config
+from app.config import Config
 
 
 bp = Blueprint("main", __name__)
