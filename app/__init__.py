@@ -25,7 +25,10 @@ def create_app():
         # db.create_all()  # mejor usar migraciones (Alembic)
     
     @app.context_processor
-    def inject_now():
-        return {"current_year": datetime.utcnow().year}
+    def inject_globals():
+        return {
+            "current_year": datetime.utcnow().year,
+            "version": app.config.get("APP_VERSION", "v0")
+        }
 
     return app
