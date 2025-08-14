@@ -3,7 +3,7 @@ from ..extensions import db
 from ..models import User, Execution
 from ..services.security import allowed_file, looks_suspicious
 from ..services.files import extract_pdf, extract_docx
-from ..services.ai import analizar_openai, analizar_gemini, extraer_score, sanitize_markdown, detectar_idioma
+from ..services.ai import analizar_openai, analizar_gemini, extraer_score, sanitize_markdown, detectar_idioma, disclaimer_text
 import markdown
 from ..models import User, Execution, Comment   # <-- agrega Comment
 from sqlalchemy import asc                      # <-- agrega asc
@@ -93,16 +93,15 @@ def index():
             
             if looks_suspicious(cv_text[:100000]):
                 flash("Detectamos contenido potencialmente peligroso en el archivo.")
-                return redirect(url_for("main.index"))
+                return redirect(url_for("main.index"))            
 
             # LLMs
-            feedback_text, oi_error = analizar_openai(cv_text, jobdesc)
-            if feedback_text:
-                model_vendor, model_name, model_used = "openai", "gpt-4o", 1
-            else:
-                fb = analizar_gemini(cv_text, jobdesc)
+            nombre = session.get("user_name") or session.get("user_email")
+            feedback_text, oi_error = analizar_openai(cv_text, jobdesc, nombre=nombre)
+            # Si falla OpenAI:
+            if feedback_text is None:
+                fb = analizar_gemini(cv_text, jobdesc, nombre=nombre)
                 feedback_text = fb
-                model_vendor, model_name, model_used = ("gemini", "gemini-1.5-flash", 2) if fb else (None, None, None)
 
             feedback_html = sanitize_markdown(feedback_text) if feedback_text else None
             score_jd = extraer_score(feedback_text) if feedback_text else None
@@ -126,6 +125,9 @@ def index():
 
             res_lang = detectar_idioma(cv_text)
             jd_lang = detectar_idioma(jobdesc)
+
+            idioma = detectar_idioma(cv_text + " " + jobdesc)
+            disclaimer = disclaimer_text(idioma)
 
             ex = Execution(
                 email=email,
@@ -154,6 +156,7 @@ def index():
                 "index.html",
                 email=email, name=name, picture=picture,
                 feedback=feedback_html,
+                disclaimer=disclaimer,
                 score_jd=score_jd,        
                 score_ats=score_ats,
                 ats_details=ats_details,      
