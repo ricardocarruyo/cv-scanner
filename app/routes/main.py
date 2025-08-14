@@ -10,7 +10,7 @@ from sqlalchemy import asc                      # <-- agrega asc
 from datetime import datetime                   # <-- para timestamps
 from ..services.files import extract_pdf, extract_docx
 from ..services.ats import evaluate_ats_compliance
-from app.config import APP_VERSION
+from app.config import APP_VERSION, Config
 
 
 bp = Blueprint("main", __name__)
@@ -211,7 +211,7 @@ def index():
             flash("Ocurrió un error al procesar el análisis. Inténtalo nuevamente.", "danger")
             return redirect(url_for("main.index"))
 
-    return render_template("index.html", version=APP_VERSION,
+    return render_template("index.html", version=Config.APP_VERSION,
                            email=email, name=name, picture=picture,
                            feedback=None,
                            score_jd=None, score_ats=None,
