@@ -43,76 +43,42 @@
     .navbar-brand:focus, .navbar-brand:focus-visible { outline: none !important; box-shadow: none !important; }
     .navbar-brand img { height: 24px; width: auto; display: inline-block; }
 
-    /* ===== Stepper ===== */
-    .stepper{ --accent:#0d6efd; --muted:#dee2e6; --text:#6c757d; }
-    .stepper--vertical{ position: absolute; top: 5.25rem; }  /* debajo del navbar */
-
+    /* Stepper (horizontal por defecto) */
+    .stepper{
+      display:flex; align-items:center; gap:2.25rem; position:relative;
+    }
     .step{
-      position: relative;
-      padding-left: 2.25rem;
-      min-height: 56px;
+      position:relative; display:flex; flex-direction:column; align-items:center; text-align:center;
     }
-    .step:not(:last-child)::after{
-      content:"";
-      position:absolute;
-      left: 1rem;              /* alineado con el centro del bullet (16px + borde) */
-      top: 36px;               /* debajo del bullet */
-      width: 2px;
-      height: calc(100% - 36px);
-      background: var(--muted);
-      border-radius: 1px;
+    .step + .step::before{
+      content:""; position:absolute; left:-1.125rem; top:18px; /* centrado vertical según bullet 36px */
+      width:2.25rem; height:4px; border-radius:4px;
+      background:#e9ecef; transition:background-color .3s ease;
     }
+    .step--done + .step::before{ background:#0d6efd33; }  /* línea tenue luego de done */
+    .step--active + .step::before{ background:#0d6efd66; }
 
     .step__bullet{
-      width: 34px; height: 34px;
-      border-radius: 50%;
-      border: 3px solid var(--muted);
-      background: #fff;
-      display: grid;
-      place-items: center;
-      font-weight: 700;
-      color: var(--text);
-      position:absolute;
-      left: 0; top: 0;
-      transition: all .2s ease;
+      width:36px; height:36px; border-radius:50%;
+      display:grid; place-items:center; font-weight:700;
+      background:#f1f3f5; color:#6c757d; border:2px solid #dee2e6;
+      transition:all .25s ease;
+      box-shadow:0 0 0 0 rgba(13,110,253,0);
     }
-    .step__label{
-      color: var(--text);
-      font-size: .92rem;
-      line-height: 1.2;
-      margin-left: .25rem;
+    .step--active .step__bullet{
+      border-color:#0d6efd; color:#0d6efd; background:#eef5ff;
+      box-shadow:0 0 0 6px rgba(13,110,253,.1);
     }
+    .step--done .step__bullet{
+      background:#0d6efd; color:#fff; border-color:#0d6efd;
+    }
+    .step__label{ margin-top:.35rem; font-size:.9rem; color:#495057; }
 
-    /* Activo */
-    .step.is-active .step__bullet{
-      border-color: var(--accent);
-      color: var(--accent);
-      box-shadow: 0 0 0 4px rgba(13,110,253,.12);
+    /* Opción vertical (añade clase .stepper--vertical al contenedor) */
+    .stepper.stepper--vertical{ flex-direction:column; align-items:flex-start; }
+    .stepper.stepper--vertical .step + .step::before{
+      width:4px; height:2.25rem; left:16px; top:-1.125rem;
     }
-    .step.is-active .step__label{
-      color:#212529; font-weight:600;
-    }
-
-    /* Completado */
-    .step.is-complete .step__bullet{
-      background: var(--accent);
-      border-color: var(--accent);
-      color:#fff;
-    }
-    .step.is-complete::after{
-      background: var(--accent);
-    }
-
-    /* Responsive: horizontal en móviles, sin conectores para simplificar */
-    @media (max-width: 991.98px){
-      .stepper--vertical{ position: static; }
-      #analysis-stepper{ display:flex; justify-content: space-between; gap:.5rem; }
-      .step{ padding-left:0; padding-top:2.5rem; min-height:auto; text-align:center; }
-      .step__bullet{ left:50%; top:0; transform:translateX(-50%); }
-      .step:not(:last-child)::after{ display:none; }
-    }
-
-
   </style>
 
 

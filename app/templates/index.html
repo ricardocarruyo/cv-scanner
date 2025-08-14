@@ -63,91 +63,84 @@
 {% endblock %}
 
 {% block content %}
-  <div class="row g-4">
-    <!-- Columna izquierda: Stepper + Formulario -->
-    <div class="col-12 col-lg-6">
-      <div class="row g-3 align-items-start">
-        <!-- Stepper (vertical en desktop; lo podés ocultar en mobile si querés) -->
-        <div class="col-12 col-lg-3">
-          <div id="analysis-stepper"
-              class="stepper stepper--vertical my-3"
-              data-has-feedback="{{ 1 if feedback else 0 }}">
-            <div class="step" data-step="1">
-              <div class="step__bullet">1</div>
-              <div class="step__label">Sube tu CV</div>
+  <!-- STEPPER: Progreso del análisis -->
+  <div id="analysis-stepper"
+      class="stepper my-3"
+      data-has-feedback="{{ 1 if feedback else 0 }}">
+    <div class="step" data-step="1">
+      <div class="step__bullet">1</div>
+      <div class="step__label">Sube tu CV</div>
+    </div>
+    <div class="step" data-step="2">
+      <div class="step__bullet">2</div>
+      <div class="step__label">Agrega el puesto</div>
+    </div>
+    <div class="step" data-step="3">
+      <div class="step__bullet">3</div>
+      <div class="step__label">Ver resultados</div>
+    </div>
+  </div>
+
+  <!-- Formulario (ocupa el resto de la columna izquierda) -->
+  <div class="col-12 col-lg-6">
+    <div class="card p-4 shadow-sm h-100">
+      {% if not session.get('user_email') %}
+        <div class="text-center">
+          <p class="mb-3">Para usar el analizador, primero inicia sesión con Google.</p>
+          <a class="btn btn-outline-primary" href="{{ url_for('auth.login') }}">
+            <i class="bi bi-google"></i> Iniciar sesión con Google
+          </a>
+        </div>
+      {% else %}
+        <form method="post" enctype="multipart/form-data" action="{{ url_for('main.index') }}">
+          <div class="mb-3">
+            <label class="form-label">Ocupación (opcional):</label>
+            <input type="text" class="form-control" name="occupation"
+                  placeholder="Ej.: Analista de Negocio, QA, DevOps"
+                  value="{{ occupation or '' }}">
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label">Sube tu CV (PDF o DOCX, máx. {{ max_mb or 2 }} MB):</label>
+
+            <!-- input real -->
+            <input id="file-input" name="cv" type="file" accept=".pdf,.docx" class="visually-hidden">
+
+            <!-- zona drag&drop -->
+            <div id="dropzone"
+                class="dropzone border border-2 rounded-3 p-4 text-center bg-white"
+                style="border-style:dashed; cursor:pointer;">
+              <div class="fw-semibold">Arrastra y suelta tu archivo aquí</div>
+              <div class="text-muted small">o haz clic para elegir desde tu computadora</div>
+              <div id="file-name" class="small mt-2 text-secondary"></div>
             </div>
-            <div class="step" data-step="2">
-              <div class="step__bullet">2</div>
-              <div class="step__label">Agrega el puesto</div>
-            </div>
-            <div class="step" data-step="3">
-              <div class="step__bullet">3</div>
-              <div class="step__label">Ver resultados</div>
+
+            <div class="form-text">Solo PDF/DOCX. Realizamos controles básicos de seguridad.</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Pega la descripción del puesto:</label>
+            <textarea id="jobdesc" name="jobdesc"
+                      class="form-control"
+                      rows="8"
+                      maxlength="4000"
+                      required
+                      style="overflow-y:auto; overflow-x:hidden; white-space:pre-wrap; word-wrap:break-word; max-height:220px;">{{ jobdesc or '' }}</textarea>
+
+            <div class="d-flex justify-content-between align-items-center mt-1">
+              <button type="button" id="btn-clear-jobdesc" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-eraser"></i> Limpiar
+              </button>
+              <span id="char-count" class="small text-muted">0/4000</span>
             </div>
           </div>
-        </div>
-        <!-- Formulario (ocupa el resto de la columna izquierda) -->
-        <div class="col-12 col-lg-9">
-          <div class="card p-4 shadow-sm h-100">
-            {% if not session.get('user_email') %}
-              <div class="text-center">
-                <p class="mb-3">Para usar el analizador, primero inicia sesión con Google.</p>
-                <a class="btn btn-outline-primary" href="{{ url_for('auth.login') }}">
-                  <i class="bi bi-google"></i> Iniciar sesión con Google
-                </a>
-              </div>
-            {% else %}
-              <form method="post" enctype="multipart/form-data" action="{{ url_for('main.index') }}">
-                <div class="mb-3">
-                  <label class="form-label">Ocupación (opcional):</label>
-                  <input type="text" class="form-control" name="occupation"
-                        placeholder="Ej.: Analista de Negocio, QA, DevOps"
-                        value="{{ occupation or '' }}">
-                </div>
 
-                <div class="mb-2">
-                  <label class="form-label">Sube tu CV (PDF o DOCX, máx. {{ max_mb or 2 }} MB):</label>
-
-                  <!-- input real -->
-                  <input id="file-input" name="cv" type="file" accept=".pdf,.docx" class="visually-hidden">
-
-                  <!-- zona drag&drop -->
-                  <div id="dropzone"
-                      class="dropzone border border-2 rounded-3 p-4 text-center bg-white"
-                      style="border-style:dashed; cursor:pointer;">
-                    <div class="fw-semibold">Arrastra y suelta tu archivo aquí</div>
-                    <div class="text-muted small">o haz clic para elegir desde tu computadora</div>
-                    <div id="file-name" class="small mt-2 text-secondary"></div>
-                  </div>
-
-                  <div class="form-text">Solo PDF/DOCX. Realizamos controles básicos de seguridad.</div>
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label">Pega la descripción del puesto:</label>
-                  <textarea id="jobdesc" name="jobdesc"
-                            class="form-control"
-                            rows="8"
-                            maxlength="4000"
-                            required
-                            style="overflow-y:auto; overflow-x:hidden; white-space:pre-wrap; word-wrap:break-word; max-height:220px;">{{ jobdesc or '' }}</textarea>
-
-                  <div class="d-flex justify-content-between align-items-center mt-1">
-                    <button type="button" id="btn-clear-jobdesc" class="btn btn-sm btn-outline-secondary">
-                      <i class="bi bi-eraser"></i> Limpiar
-                    </button>
-                    <span id="char-count" class="small text-muted">0/4000</span>
-                  </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary w-100">
-                  <i class="bi bi-search"></i> Analizar
-                </button>
-              </form>
-            {% endif %}
-          </div>
-        </div>
-      </div>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-search"></i> Analizar
+          </button>
+        </form>
+      {% endif %}
+    </div>
   </div>
 
   <!-- Panel derecho -->
@@ -610,52 +603,41 @@
       // ----------------------------------------------------------      
       // --- STEP PER: Subir CV -> Agregar puesto -> Ver resultados ---
       // ----------------------------------------------------------
-      (function stepperLogic(){
-        var stepper = document.getElementById('analysis-stepper');
-        if (!stepper) return;
+      (function(){
+        const el = document.getElementById('analysis-stepper');
+        if(!el) return;
 
-        var hasFeedback = stepper.getAttribute('data-has-feedback') === '1';
-        var fi  = document.getElementById('file-input');
-        var ta  = document.getElementById('jobdesc');
+        const hasFeedback = el.getAttribute('data-has-feedback') === '1';
+        const fi = document.getElementById('file-input');   // tu input hidden real
+        const ta = document.getElementById('jobdesc');      // textarea de descripción
 
-        function setState(stepNum, state){
-          // state: "pending" | "active" | "complete"
-          var el = stepper.querySelector('.step[data-step="'+stepNum+'"]');
-          if (!el) return;
-          el.classList.remove('is-active','is-complete');
-          if (state === 'active')   el.classList.add('is-active');
-          if (state === 'complete') el.classList.add('is-complete');
+        const steps = Array.from(el.querySelectorAll('.step'));
+        function setState(stepNum){ // 0=ninguno, 1=CV, 2=JD, 3=Resultados
+          steps.forEach((s,i)=>{
+            s.classList.remove('step--done','step--active');
+            const idx = i+1;
+            if(idx < stepNum)      s.classList.add('step--done');
+            else if(idx === stepNum) s.classList.add('step--active');
+          });
         }
 
-        function update(){
-          var fileOk = !!(fi && fi.files && fi.files.length);
-          var jobOk  = !!(ta && ta.value.trim().length);
-
-          // reset
-          setState(1,'pending'); setState(2,'pending'); setState(3,'pending');
-
-          if (fileOk){ setState(1,'complete'); } else { setState(1,'active'); }
-
-          if (fileOk && jobOk){
-            setState(2,'complete');
-            setState(3, hasFeedback ? 'complete' : 'active');
-          } else if (fileOk && !jobOk){
-            setState(2,'active');
-          } else {
-            // aún sin archivo: solo el paso 1 activo
-            setState(1,'active');
-          }
+        function computeStep(){
+          const haveFile = !!(fi && fi.files && fi.files.length > 0);
+          const haveDesc = !!(ta && ta.value && ta.value.trim().length > 0);
+          if(hasFeedback) return 3;
+          if(haveFile && haveDesc) return 2;    // listo para enviar
+          if(haveFile) return 1;
+          return 1;                             // arrancamos en 1 por guía
         }
 
-        // inicializa
-        update();
+        function render(){ setState(computeStep()); }
 
-        // escucha cambios
-        if (fi) fi.addEventListener('change', update);
-        if (ta) ta.addEventListener('input', update);
+        // eventos
+        if(fi) fi.addEventListener('change', render);
+        if(ta) ta.addEventListener('input', render);
 
-        // si tu flujo recarga feedback en la misma vista, se refleja
-        // (ya marcaste hasFeedback en el data-attribute desde Jinja)
+        // primera pintura
+        render();
       })();
 
     })();
