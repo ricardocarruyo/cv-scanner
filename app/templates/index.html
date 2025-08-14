@@ -63,9 +63,8 @@
 {% endblock %}
 
 {% block content %}
-  <!-- STEPPER: Progreso del análisis -->
-  <div id="analysis-stepper"
-      class="stepper my-3"
+  <!-- STEPPER HORIZONTAL -->
+  <div id="analysis-stepper" class="container stepper"
       data-has-feedback="{{ 1 if feedback else 0 }}">
     <div class="step" data-step="1">
       <div class="step__bullet">1</div>
@@ -80,127 +79,130 @@
       <div class="step__label">Ver resultados</div>
     </div>
   </div>
+  <div class="container stepper-divider"></div>
 
-  <!-- Formulario (ocupa el resto de la columna izquierda) -->
-  <div class="col-12 col-lg-6">
-    <div class="card p-4 shadow-sm h-100">
-      {% if not session.get('user_email') %}
-        <div class="text-center">
-          <p class="mb-3">Para usar el analizador, primero inicia sesión con Google.</p>
-          <a class="btn btn-outline-primary" href="{{ url_for('auth.login') }}">
-            <i class="bi bi-google"></i> Iniciar sesión con Google
-          </a>
-        </div>
-      {% else %}
-        <form method="post" enctype="multipart/form-data" action="{{ url_for('main.index') }}">
-          <div class="mb-3">
-            <label class="form-label">Ocupación (opcional):</label>
-            <input type="text" class="form-control" name="occupation"
-                  placeholder="Ej.: Analista de Negocio, QA, DevOps"
-                  value="{{ occupation or '' }}">
-          </div>
-
-          <div class="mb-2">
-            <label class="form-label">Sube tu CV (PDF o DOCX, máx. {{ max_mb or 2 }} MB):</label>
-
-            <!-- input real -->
-            <input id="file-input" name="cv" type="file" accept=".pdf,.docx" class="visually-hidden">
-
-            <!-- zona drag&drop -->
-            <div id="dropzone"
-                class="dropzone border border-2 rounded-3 p-4 text-center bg-white"
-                style="border-style:dashed; cursor:pointer;">
-              <div class="fw-semibold">Arrastra y suelta tu archivo aquí</div>
-              <div class="text-muted small">o haz clic para elegir desde tu computadora</div>
-              <div id="file-name" class="small mt-2 text-secondary"></div>
+  <div class="container mt-3">
+    <div class="row equal-panels g-4">
+      <!-- IZQUIERDA: FORM -->
+      <div class="col-12 col-lg-6">
+        <div class="card p-4 shadow-sm h-100">
+          {% if not session.get('user_email') %}
+            <div class="text-center">
+              <p class="mb-3">Para usar el analizador, primero inicia sesión con Google.</p>
+              <a class="btn btn-outline-primary" href="{{ url_for('auth.login') }}">
+                <i class="bi bi-google"></i> Iniciar sesión con Google
+              </a>
             </div>
+          {% else %}
+            <form method="post" enctype="multipart/form-data" action="{{ url_for('main.index') }}">
+              <div class="mb-3">
+                <label class="form-label">Ocupación (opcional):</label>
+                <input type="text" class="form-control" name="occupation"
+                      placeholder="Ej.: Analista de Negocio, QA, DevOps"
+                      value="{{ occupation or '' }}">
+              </div>
 
-            <div class="form-text">Solo PDF/DOCX. Realizamos controles básicos de seguridad.</div>
-          </div>
+              <div class="mb-2">
+                <label class="form-label">Sube tu CV (PDF o DOCX, máx. {{ max_mb or 2 }} MB):</label>
+                <input id="file-input" name="cv" type="file" accept=".pdf,.docx" class="visually-hidden">
 
-          <div class="mb-3">
-            <label class="form-label">Pega la descripción del puesto:</label>
-            <textarea id="jobdesc" name="jobdesc"
-                      class="form-control"
-                      rows="8"
-                      maxlength="4000"
-                      required
-                      style="overflow-y:auto; overflow-x:hidden; white-space:pre-wrap; word-wrap:break-word; max-height:220px;">{{ jobdesc or '' }}</textarea>
+                <div id="dropzone"
+                    class="dropzone border border-2 rounded-3 p-4 text-center bg-white"
+                    style="border-style:dashed; cursor:pointer;">
+                  <div class="fw-semibold">Arrastra y suelta tu archivo aquí</div>
+                  <div class="text-muted small">o haz clic para elegir desde tu computadora</div>
+                  <div id="file-name" class="small mt-2 text-secondary"></div>
+                </div>
 
-            <div class="d-flex justify-content-between align-items-center mt-1">
-              <button type="button" id="btn-clear-jobdesc" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-eraser"></i> Limpiar
+                <div class="form-text">Solo PDF/DOCX. Realizamos controles básicos de seguridad.</div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Pega la descripción del puesto:</label>
+                <textarea id="jobdesc" name="jobdesc"
+                          class="form-control"
+                          rows="8"
+                          maxlength="4000"
+                          required
+                          style="overflow-y:auto; overflow-x:hidden; white-space:pre-wrap; word-wrap:break-word; max-height:220px;">{{ jobdesc or '' }}</textarea>
+
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                  <button type="button" id="btn-clear-jobdesc" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-eraser"></i> Limpiar
+                  </button>
+                  <span id="char-count" class="small text-muted">0/4000</span>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-search"></i> Analizar
               </button>
-              <span id="char-count" class="small text-muted">0/4000</span>
-            </div>
-          </div>
+            </form>
+          {% endif %}
+        </div>
+      </div>
 
-          <button type="submit" class="btn btn-primary w-100">
-            <i class="bi bi-search"></i> Analizar
-          </button>
-        </form>
-      {% endif %}
-    </div>
-  </div>
+      <!-- DERECHA: LINEAMIENTOS -->
+      <div class="col-12 col-lg-6">
+        <div class="card p-4 shadow-sm h-100 d-flex align-items-stretch">
+          <!-- tu bloque de lineamientos tal como lo tienes -->
+          <div class="w-100">
+            <h5 class="mb-3">Lineamientos para subir tu CV</h5>
+            <ul class="small mb-3">
+              <li>Formato: <strong>PDF o DOCX</strong></li>
+              <li>Idioma: <strong>Español o Inglés</strong></li>
+              <li>Texto legible (no imagen escaneada)</li>
+              <li>Tamaño máximo: <strong>{{ max_mb }} MB</strong></li>
+              <li>Solo el CV (no adjuntes otros documentos)</li>
+              <li>
+                <a class="link-primary" href="{{ url_for('static', filename='docs/Plantilla_CV_ATS_STAR.docx') }}" download>
+                  Descargar Plantilla CV ATS
+                </a>
+              </li>
+            </ul>
 
-  <!-- Panel derecho -->
-  <div class="col-12 col-lg-6">
-    <div class="card p-4 shadow-sm h-100 d-flex align-items-stretch">
-      <div class="w-100">
-        <h5 class="mb-3">Lineamientos para subir tu CV</h5>
-        <ul class="small mb-3">
-          <li>Formato: <strong>PDF o DOCX</strong></li>
-          <li>Idioma: <strong>Español o Inglés</strong></li>
-          <li>Texto legible (no imagen escaneada)</li>
-          <li>Tamaño máximo: <strong>{{ max_mb }} MB</strong></li>
-          <li>Solo el CV (no adjuntes otros documentos)</li>
-          <li>
-            <a class="link-primary" href="{{ url_for('static', filename='docs/Plantilla_CV_ATS_STAR.docx') }}" download>
-              Descargar Plantilla CV ATS
-            </a>
-          </li>
-        </ul>
+            <h6 class="mt-3">Recomendaciones ATS</h6>
+            <ul class="small">
+              <li><strong>1–2 páginas</strong> (junior 1 pág., senior hasta 2).</li>
+              <li>Tipografías seguras: Arial, Calibri, Helvetica, Verdana.</li>
+              <li><strong>Evita</strong> imágenes, logos, tablas y columnas.</li>
+              <li>Usa encabezados simples (H1/H2) y bullets estándar.</li>
+              <li>No uses gráficos incrustados ni íconos como texto.</li>
+            </ul>
 
-        <h6 class="mt-3">Recomendaciones ATS</h6>
-        <ul class="small">
-          <li><strong>1–2 páginas</strong> (junior 1 pág., senior hasta 2).</li>
-          <li>Tipografías seguras: Arial, Calibri, Helvetica, Verdana.</li>
-          <li><strong>Evita</strong> imágenes, logos, tablas y columnas.</li>
-          <li>Usa encabezados simples (H1/H2) y bullets estándar.</li>
-          <li>No uses gráficos incrustados ni íconos como texto.</li>
-        </ul>
+            <h6 class="mt-3">Títulos / Secciones equivalentes aceptadas por ATS</h6>
+            <p class="small text-muted mb-2">Puedes usar cualquiera de estos nombres; el sistema los reconocerá como equivalentes.</p>
+            <ul class="small mb-3">
+              <li>
+                <strong>Perfil profesional</strong> → Resumen profesional, Resumen, Objetivo(s), <em>Summary</em>, <em>Professional Summary</em>, <em>Profile</em>, <em>Objective</em>.
+              </li>
+              <li>
+                <strong>Experiencia laboral</strong> → Experiencia profesional, Experiencia, <em>Work Experience</em>, <em>Employment History</em>, <em>Career History</em>.
+              </li>
+              <li>
+                <strong>Educación</strong> → Formación académica, <em>Education</em>, <em>Academic Background</em>.
+              </li>
+              <li>
+                <strong>Habilidades</strong> → Competencias, <em>Skills</em>, <em>Hard Skills</em>, <em>Soft Skills</em>, <em>Technical Skills</em>.
+              </li>
+              <li>
+                <strong>Idiomas</strong> → <em>Languages</em>.
+              </li>
+            </ul>
 
-        <h6 class="mt-3">Títulos / Secciones equivalentes aceptadas por ATS</h6>
-        <p class="small text-muted mb-2">Puedes usar cualquiera de estos nombres; el sistema los reconocerá como equivalentes.</p>
-        <ul class="small mb-3">
-          <li>
-            <strong>Perfil profesional</strong> → Resumen profesional, Resumen, Objetivo(s), <em>Summary</em>, <em>Professional Summary</em>, <em>Profile</em>, <em>Objective</em>.
-          </li>
-          <li>
-            <strong>Experiencia laboral</strong> → Experiencia profesional, Experiencia, <em>Work Experience</em>, <em>Employment History</em>, <em>Career History</em>.
-          </li>
-          <li>
-            <strong>Educación</strong> → Formación académica, <em>Education</em>, <em>Academic Background</em>.
-          </li>
-          <li>
-            <strong>Habilidades</strong> → Competencias, <em>Skills</em>, <em>Hard Skills</em>, <em>Soft Skills</em>, <em>Technical Skills</em>.
-          </li>
-          <li>
-            <strong>Idiomas</strong> → <em>Languages</em>.
-          </li>
-        </ul>
-
-        <h6 class="mt-3">Recomendación: usa el formato STAR en tu experiencia</h6>
-        <p class="small mb-1">
-          El método <strong>STAR</strong> ayuda a redactar logros claros y medibles:
-        </p>
-        <ul class="small mb-0">
-          <li><strong>S</strong>ituación: contexto o problema.</li>
-          <li><strong>T</strong>area: objetivo o responsabilidad.</li>
-          <li><strong>A</strong>cción: qué hiciste específicamente.</li>
-          <li><strong>R</strong>esultado: impacto medible (%, tiempos, ahorros, etc.).</li>
-        </ul>
-      </div>      
+            <h6 class="mt-3">Recomendación: usa el formato STAR en tu experiencia</h6>
+            <p class="small mb-1">
+              El método <strong>STAR</strong> ayuda a redactar logros claros y medibles:
+            </p>
+            <ul class="small mb-0">
+              <li><strong>S</strong>ituación: contexto o problema.</li>
+              <li><strong>T</strong>area: objetivo o responsabilidad.</li>
+              <li><strong>A</strong>cción: qué hiciste específicamente.</li>
+              <li><strong>R</strong>esultado: impacto medible (%, tiempos, ahorros, etc.).</li>
+            </ul>
+          </div> 
+        </div>
+      </div>
     </div>
   </div>
 
@@ -597,53 +599,129 @@
             try { localStorage.setItem(KEY, ta.value); } catch(e) {}
           });
         }
-      })();
-      
-      
-      // ----------------------------------------------------------      
-      // --- STEP PER: Subir CV -> Agregar puesto -> Ver resultados ---
-      // ----------------------------------------------------------
-      (function(){
-        const el = document.getElementById('analysis-stepper');
-        if(!el) return;
-
-        const hasFeedback = el.getAttribute('data-has-feedback') === '1';
-        const fi = document.getElementById('file-input');   // tu input hidden real
-        const ta = document.getElementById('jobdesc');      // textarea de descripción
-
-        const steps = Array.from(el.querySelectorAll('.step'));
-        function setState(stepNum){ // 0=ninguno, 1=CV, 2=JD, 3=Resultados
-          steps.forEach((s,i)=>{
-            s.classList.remove('step--done','step--active');
-            const idx = i+1;
-            if(idx < stepNum)      s.classList.add('step--done');
-            else if(idx === stepNum) s.classList.add('step--active');
-          });
-        }
-
-        function computeStep(){
-          const haveFile = !!(fi && fi.files && fi.files.length > 0);
-          const haveDesc = !!(ta && ta.value && ta.value.trim().length > 0);
-          if(hasFeedback) return 3;
-          if(haveFile && haveDesc) return 2;    // listo para enviar
-          if(haveFile) return 1;
-          return 1;                             // arrancamos en 1 por guía
-        }
-
-        function render(){ setState(computeStep()); }
-
-        // eventos
-        if(fi) fi.addEventListener('change', render);
-        if(ta) ta.addEventListener('input', render);
-
-        // primera pintura
-        render();
-      })();
-
+      })();   
     })();
-
-    
   </script>
+  <script>
+    (function(){
+      /* ---------- utilidades visuales del dropzone ---------- */
+      const dz = document.getElementById('dropzone');
+      const fi = document.getElementById('file-input');
+      const fn = document.getElementById('file-name');
+      const ta = document.getElementById('jobdesc');
+      const KEY = 'cvms_jobdesc';
+
+      function showName(file){
+        if(!fn || !dz) return;
+        if(!file){
+          fn.textContent = '';
+          dz.classList.remove('ok');
+          return;
+        }
+        const kb = Math.round((file.size||0)/1024);
+        fn.innerHTML = '<i class="bi bi-check-circle-fill me-1 text-success"></i> '
+                      + 'Archivo: '+ file.name + ' (' + kb + ' KB)';
+        dz.classList.add('ok');
+      }
+
+      function validarExt(file){
+        return /\.(pdf|docx)$/i.test(file.name);
+      }
+
+      // abrir selector al click
+      if(dz){
+        dz.addEventListener('click', ()=> fi && fi.click());
+        dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.classList.add('bg-light'); });
+        dz.addEventListener('dragleave', ()=> dz.classList.remove('bg-light'));
+        dz.addEventListener('drop', e=>{
+          e.preventDefault(); dz.classList.remove('bg-light');
+          const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+          if(!f || !validarExt(f)) return alert('Formato no permitido. Solo PDF o DOCX.');
+          try{
+            const dt = new DataTransfer(); dt.items.add(f); fi.files = dt.files;
+          }catch(_){}
+          showName(f); renderStepper();
+        });
+      }
+
+      if(fi){
+        fi.addEventListener('change', e=>{
+          const f = e.target.files && e.target.files[0];
+          if(!f){ showName(null); renderStepper(); return; }
+          if(!validarExt(f)){ fi.value=''; showName(null); alert('Solo PDF o DOCX.'); return; }
+          showName(f); renderStepper();
+        });
+      }
+
+      // Persistencia de la descripción
+      if(ta){
+        // Inicializa desde storage si el server no trajo contenido
+        if(!ta.value.trim()){
+          const saved = localStorage.getItem(KEY);
+          if(saved) ta.value = saved;
+        }
+        ta.addEventListener('input', ()=>{
+          try{ localStorage.setItem(KEY, ta.value); }catch(_){}
+          updateCharCount();
+          renderStepper();
+        });
+        document.getElementById('btn-clear-jobdesc')?.addEventListener('click', ()=>{
+          ta.value = ''; updateCharCount(); renderStepper();
+          try{ localStorage.removeItem(KEY); }catch(_){}
+          ta.focus();
+        });
+      }
+
+      function updateCharCount(){
+        const cc = document.getElementById('char-count');
+        if(cc && ta) cc.textContent = (ta.value.length) + "/4000";
+      }
+      updateCharCount();
+
+      /* ---------- STEPPER ---------- */
+      const stepper = document.getElementById('analysis-stepper');
+      const hasFeedback = stepper?.getAttribute('data-has-feedback') === '1';
+      const steps = stepper ? Array.from(stepper.querySelectorAll('.step')) : [];
+
+      function setState(n){ // pinta estados: done/active
+        steps.forEach((s,i)=>{
+          s.classList.remove('step--done','step--active');
+          const idx = i+1;
+          if(idx < n) s.classList.add('step--done');
+          else if(idx === n) s.classList.add('step--active');
+        });
+      }
+
+      function renderStepper(){
+        const haveFile = !!(fi && fi.files && fi.files.length);
+        const haveDesc = !!(ta && ta.value.trim().length);
+
+        // 1: archivo, 2: JD, 3: resultado
+        if(hasFeedback){
+          setState(3);
+          return;
+        }
+        if(haveFile && haveDesc){ setState(2); return; }
+        if(haveFile){ setState(1); return; }
+        setState(1); // paso 1 por defecto
+      }
+
+      renderStepper();
+
+      /* ---------- RESET tras análisis: limpiar inputs y stepper ---------- */
+      if(hasFeedback){
+        // limpia visual del archivo y textarea
+        showName(null);
+        if(fi) fi.value = '';
+        if(ta){ ta.value = ''; updateCharCount(); try{ localStorage.removeItem(KEY); }catch(_){ } }
+
+        // y deja el stepper "listo para un nuevo análisis" (paso 1 activo)
+        // (esperamos un frame para que primero se vea el estado 3 al cargar)
+        requestAnimationFrame(()=> setState(1));
+      }
+    })();
+  </script>
+
 {% endblock %}
 
 
