@@ -191,6 +191,11 @@
   <div class="card mt-4 p-4 shadow-sm">
     <div class="d-flex justify-content-between align-items-center mb-2">
       <h3 class="mb-0">Análisis de la IA</h3>
+      {% if disclaimer %}
+        <div class="alert alert-info mt-3" role="alert">
+          {{ disclaimer }}
+        </div>
+      {% endif %}
       <div class="d-flex gap-2">
         {% if model_used == 1 %}
           <span class="badge text-bg-primary model-badge"><i class="bi bi-cpu"></i> Modelo 1: OpenAI</span>
