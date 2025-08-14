@@ -24,8 +24,19 @@ def extraer_score(texto):
                 val = int(m.group(1))
                 if 0 <= val <= 100: return val
             except: pass
+
     return None
 
+PROMPT_TEMPLATE = """
+You are a recruiter and career coach. Your task is to analyze the following resume and job description in a professional, human, and personal tone. Address the candidate by their name, highlight strengths and areas for improvement, and provide constructive feedback as both a recruiter and a coach. Be empathetic and encouraging, but also honest and direct. Do not include a line that says 'Puntuación de coincidencia:'.
+
+Respond with:
+1. A match score (0–100) (just the number, not a label).
+2. Key strengths and positive aspects of the resume.
+3. Skills or qualifications missing or needing improvement.
+4. Suggestions for improving the resume to better fit the role.
+5. A professional disclaimer: "This analysis is intended as guidance to help improve your CV. Results may vary with each analysis and are not absolute truths. A match score above 70% is generally considered good, but always adapt your CV to each opportunity."
+"""
 PROMPT_TEMPLATE = """You are a recruiter... Respond with:
 1. A match score (0–100).
 2. Key skills or qualifications missing.
@@ -35,7 +46,10 @@ PROMPT_TEMPLATE = """You are a recruiter... Respond with:
 def analizar_openai(cv_text, job_desc):
     idioma = detectar_idioma(cv_text + " " + job_desc)
     idioma_respuesta = "Spanish" if idioma == "es" else "English"
-    prompt = f"{PROMPT_TEMPLATE}\nPlease write the entire feedback in **{idioma_respuesta}**.\n\nResume:\n{cv_text}\n\nJob Description:\n{job_desc}\n"
+    # Intentar extraer el nombre de la persona del CV (heurística simple)
+    nombre_match = re.search(r"(?i)nombre[:\s]*([A-ZÁÉÍÓÚÑa-záéíóúñ\s]+)", cv_text)
+    nombre = nombre_match.group(1).strip() if nombre_match else "el candidato"
+    prompt = f"{PROMPT_TEMPLATE}\nPlease write the entire feedback in **{idioma_respuesta}**. Address the candidate as '{nombre}'.\n\nResume:\n{cv_text}\n\nJob Description:\n{job_desc}\n"
     cli = openai_client()
     if not cli: return None, "OpenAI no configurado"
     try:
@@ -47,7 +61,9 @@ def analizar_openai(cv_text, job_desc):
 def analizar_gemini(cv_text, job_desc):
     idioma = detectar_idioma(cv_text + " " + job_desc)
     idioma_respuesta = "Spanish" if idioma == "es" else "English"
-    prompt = f"{PROMPT_TEMPLATE}\nPlease write the entire feedback in **{idioma_respuesta}**.\n\nResume:\n{cv_text}\n\nJob Description:\n{job_desc}\n"
+    nombre_match = re.search(r"(?i)nombre[:\s]*([A-ZÁÉÍÓÚÑa-záéíóúñ\s]+)", cv_text)
+    nombre = nombre_match.group(1).strip() if nombre_match else "el candidato"
+    prompt = f"{PROMPT_TEMPLATE}\nPlease write the entire feedback in **{idioma_respuesta}**. Address the candidate as '{nombre}'.\n\nResume:\n{cv_text}\n\nJob Description:\n{job_desc}\n"
     g = gemini_client()
     if not g: return None
     model = g.GenerativeModel("gemini-1.5-flash")
