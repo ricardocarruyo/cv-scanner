@@ -129,9 +129,19 @@ def index():
                 return redirect(url_for("main.index"))
 
             # Pasar a HTML seguro y extraer score JD
-            feedback_html = sanitize_markdown(feedback_text) if feedback_text else None
             score_jd = extraer_score(feedback_text) if feedback_text else None
 
+            # Si la primera línea es sólo "NN%", elimínala del cuerpo a mostrar
+            if feedback_text:
+                lines = feedback_text.splitlines()
+                if lines:
+                    import re
+                    first = lines[0].strip()
+                    if re.fullmatch(r"\d{1,3}\s*%", first):
+                        feedback_text = "\n".join(lines[1:]).lstrip()
+
+            feedback_html = sanitize_markdown(feedback_text) if feedback_text else None
+            
             # Idioma y disclaimer para mostrar bajo el análisis
             idioma_detectado = detectar_idioma(cv_text + " " + jobdesc)
             disclaimer = disclaimer_text(idioma_detectado)
