@@ -65,11 +65,10 @@
 {% block content %}
   <div class="row g-4">
     <!-- Columna izquierda: Stepper + Formulario -->
-    <div class="col-12 col-lg-6">
+    <div class="col-12 col-lg-8">
       <div class="row g-3 align-items-start">
-
         <!-- Stepper (vertical en desktop; lo podés ocultar en mobile si querés) -->
-        <div class="col-12 col-lg-2">
+        <div class="col-12 col-lg-3">
           <div id="analysis-stepper"
               class="stepper stepper--vertical my-3"
               data-has-feedback="{{ 1 if feedback else 0 }}">
@@ -87,9 +86,8 @@
             </div>
           </div>
         </div>
-
         <!-- Formulario (ocupa el resto de la columna izquierda) -->
-        <div class="col-12 col-lg-10">
+        <div class="col-12 col-lg-9">
           <div class="card p-4 shadow-sm h-100">
             {% if not session.get('user_email') %}
               <div class="text-center">
@@ -153,7 +151,7 @@
   </div>
 
   <!-- Panel derecho -->
-  <div class="col-12 col-lg-6">
+  <div class="col-12 col-lg-4">
     <div class="card p-4 shadow-sm h-100 d-flex align-items-stretch">
       <div class="w-100">
         <h5 class="mb-3">Lineamientos para subir tu CV</h5>
