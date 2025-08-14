@@ -95,16 +95,46 @@ def index():
                 flash("Detectamos contenido potencialmente peligroso en el archivo.")
                 return redirect(url_for("main.index"))            
 
-            # LLMs
-            nombre = session.get("user_name") or session.get("user_email")
-            feedback_text, oi_error = analizar_openai(cv_text, jobdesc, nombre=nombre)
-            # Si falla OpenAI:
-            if feedback_text is None:
-                fb = analizar_gemini(cv_text, jobdesc, nombre=nombre)
-                feedback_text = fb
+            # ========= LLMs =========
+            # Inicializamos por si fallan ambos
+            model_vendor = None
+            model_name   = None
+            model_used   = None
+            feedback_text = None
+            oi_error = None
 
+            # Nombre para el prompt (humano y personal)
+            nombre_persona = name or email
+
+            # Primero OpenAI
+            fb_openai, oi_error = analizar_openai(cv_text, jobdesc, nombre=nombre_persona)
+            if fb_openai:
+                feedback_text = fb_openai
+                model_vendor  = "openai"
+                model_name    = "gpt-4o"
+                model_used    = 1
+            else:
+                # Fallback: Gemini
+                fb_gemini = analizar_gemini(cv_text, jobdesc, nombre=nombre_persona)
+                if fb_gemini:
+                    feedback_text = fb_gemini
+                    model_vendor  = "gemini"
+                    model_name    = "gemini-1.5-flash"
+                    model_used    = 2
+
+            # Si no hubo feedback de ningún modelo, devolvemos mensaje y salimos
+            if not feedback_text:
+                current_app.logger.error("No se pudo generar feedback. OpenAI err: %s", oi_error)
+                flash("No pudimos generar el análisis en este momento. Intenta nuevamente.")
+                return redirect(url_for("main.index"))
+
+            # Pasar a HTML seguro y extraer score JD
             feedback_html = sanitize_markdown(feedback_text) if feedback_text else None
             score_jd = extraer_score(feedback_text) if feedback_text else None
+
+            # Idioma y disclaimer para mostrar bajo el análisis
+            idioma_detectado = detectar_idioma(cv_text + " " + jobdesc)
+            disclaimer = disclaimer_text(idioma_detectado)
 
             # ATS score (estructura/lineamientos)
             res_lang = detectar_idioma(cv_text)  # 'en' / 'es'
@@ -124,10 +154,7 @@ def index():
             db.session.commit()
 
             res_lang = detectar_idioma(cv_text)
-            jd_lang = detectar_idioma(jobdesc)
-
-            idioma = detectar_idioma(cv_text + " " + jobdesc)
-            disclaimer = disclaimer_text(idioma)
+            jd_lang = detectar_idioma(jobdesc)            
 
             ex = Execution(
                 email=email,
@@ -142,7 +169,8 @@ def index():
                 feedback_text=feedback_text,
                 ats_score=score_ats
             )
-            db.session.add(ex); db.session.commit()
+            db.session.add(ex); 
+            db.session.commit()
 
             # último análisis en users
             u.last_model_vendor = model_vendor
