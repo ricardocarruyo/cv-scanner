@@ -10,6 +10,11 @@ from sqlalchemy import asc                      # <-- agrega asc
 from datetime import datetime                   # <-- para timestamps
 from ..services.files import extract_pdf, extract_docx
 from ..services.ats import evaluate_ats_compliance
+from docx import Document
+from io import BytesIO
+import fitz
+from docx import Document
+from io import BytesIO
 
 
 bp = Blueprint("main", __name__)
@@ -80,16 +85,59 @@ def index():
             # Extensión segura
             ext = filename.rsplit(".", 1)[-1].lower()
 
-            # Extraer texto y metadatos
+            # Extraer texto y metadatos + fuentes
+            docx_fonts = None
+            pdf_fonts = None
+
             if ext == "pdf":
-                cv_text, pdf_meta = extract_pdf(data)   # ✅ ahora desempaca
+                cv_text, pdf_meta = extract_pdf(data)   # <- tu función ya devuelve (texto, meta)
                 docx_meta = None
-            else:
-                cv_text, docx_meta = extract_docx(data) # ✅ ahora desempaca
+
+                # EXTRA: detectar fuentes en PDF con PyMuPDF
+                try:                    
+                    doc = fitz.open(stream=data, filetype="pdf")
+                    fonts_set = set()
+                    for page in doc:
+                        d = page.get_text("dict")
+                        for block in d.get("blocks", []):
+                            for line in block.get("lines", []):
+                                for span in line.get("spans", []):
+                                    fname = (span.get("font") or "").strip().lower()
+                                    if fname:
+                                        fonts_set.add(fname)
+                    pdf_fonts = list(fonts_set) if fonts_set else None
+                except Exception:
+                    pdf_fonts = None
+
+            else:  # docx
+                cv_text, docx_meta = extract_docx(data) # <- tu función ya devuelve (texto, meta)
                 pdf_meta = None
+
+                # EXTRA: detectar fuentes en DOCX
+                try:                  
+                    d = Document(BytesIO(data))
+                    fonts_set = set()
+                    for p in d.paragraphs:
+                        for r in p.runs:
+                            fname = getattr(r.font, "name", None)
+                            if fname:
+                                fonts_set.add(fname.strip().lower())
+                    # si además quieres fuentes de tablas:
+                    for tbl in d.tables:
+                        for row in tbl.rows:
+                            for cell in row.cells:
+                                for p in cell.paragraphs:
+                                    for r in p.runs:
+                                        fname = getattr(r.font, "name", None)
+                                        if fname:
+                                            fonts_set.add(fname.strip().lower())
+                    docx_fonts = list(fonts_set) if fonts_set else None
+                except Exception:
+                    docx_fonts = None
 
             # Asegurar string
             cv_text = cv_text or ""
+
             
             if looks_suspicious(cv_text[:100000]):
                 flash("Detectamos contenido potencialmente peligroso en el archivo.")
@@ -149,8 +197,12 @@ def index():
             # ATS score (estructura/lineamientos)
             res_lang = detectar_idioma(cv_text)  # 'en' / 'es'
             score_ats, ats_details = evaluate_ats_compliance(
-                text=cv_text, lang_code=res_lang, ext=ext,
-                pdf_meta=pdf_meta, docx_meta=docx_meta
+                text=cv_text,
+                lang_code=res_lang,
+                ext=ext,
+                pdf_meta=pdf_meta,
+                docx_meta=docx_meta,
+                docx_fonts=docx_fonts if ext == "docx" else pdf_fonts  # <- el evaluador aceptará este parámetro
             )
 
             # Persistencia
