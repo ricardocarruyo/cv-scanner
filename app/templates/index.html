@@ -63,94 +63,93 @@
 {% endblock %}
 
 {% block content %}
-<div class="row g-4">
-  <!-- Columna izquierda: Stepper + Formulario -->
-  <div class="col-12 col-lg-6">
-    <div class="row g-3 align-items-start">
+  <div class="row g-4">
+    <!-- Columna izquierda: Stepper + Formulario -->
+    <div class="col-12 col-lg-6">
+      <div class="row g-3 align-items-start">
 
-      <!-- Stepper (vertical en desktop; lo podés ocultar en mobile si querés) -->
-      <div class="col-12 col-lg-3">
-        <div id="analysis-stepper"
-             class="stepper stepper--vertical my-3"
-             data-has-feedback="{{ 1 if feedback else 0 }}">
-          <div class="step" data-step="1">
-            <div class="step__bullet">1</div>
-            <div class="step__label">Sube tu CV</div>
-          </div>
-          <div class="step" data-step="2">
-            <div class="step__bullet">2</div>
-            <div class="step__label">Agrega el puesto</div>
-          </div>
-          <div class="step" data-step="3">
-            <div class="step__bullet">3</div>
-            <div class="step__label">Ver resultados</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Formulario (ocupa el resto de la columna izquierda) -->
-      <div class="col-12 col-lg-9">
-        <div class="card p-4 shadow-sm h-100">
-          {% if not session.get('user_email') %}
-            <div class="text-center">
-              <p class="mb-3">Para usar el analizador, primero inicia sesión con Google.</p>
-              <a class="btn btn-outline-primary" href="{{ url_for('auth.login') }}">
-                <i class="bi bi-google"></i> Iniciar sesión con Google
-              </a>
+        <!-- Stepper (vertical en desktop; lo podés ocultar en mobile si querés) -->
+        <div class="col-12 col-lg-2">
+          <div id="analysis-stepper"
+              class="stepper stepper--vertical my-3"
+              data-has-feedback="{{ 1 if feedback else 0 }}">
+            <div class="step" data-step="1">
+              <div class="step__bullet">1</div>
+              <div class="step__label">Sube tu CV</div>
             </div>
-          {% else %}
-            <form method="post" enctype="multipart/form-data" action="{{ url_for('main.index') }}">
-              <div class="mb-3">
-                <label class="form-label">Ocupación (opcional):</label>
-                <input type="text" class="form-control" name="occupation"
-                       placeholder="Ej.: Analista de Negocio, QA, DevOps"
-                       value="{{ occupation or '' }}">
+            <div class="step" data-step="2">
+              <div class="step__bullet">2</div>
+              <div class="step__label">Agrega el puesto</div>
+            </div>
+            <div class="step" data-step="3">
+              <div class="step__bullet">3</div>
+              <div class="step__label">Ver resultados</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulario (ocupa el resto de la columna izquierda) -->
+        <div class="col-12 col-lg-10">
+          <div class="card p-4 shadow-sm h-100">
+            {% if not session.get('user_email') %}
+              <div class="text-center">
+                <p class="mb-3">Para usar el analizador, primero inicia sesión con Google.</p>
+                <a class="btn btn-outline-primary" href="{{ url_for('auth.login') }}">
+                  <i class="bi bi-google"></i> Iniciar sesión con Google
+                </a>
               </div>
-
-              <div class="mb-2">
-                <label class="form-label">Sube tu CV (PDF o DOCX, máx. {{ max_mb or 2 }} MB):</label>
-
-                <!-- input real -->
-                <input id="file-input" name="cv" type="file" accept=".pdf,.docx" class="visually-hidden">
-
-                <!-- zona drag&drop -->
-                <div id="dropzone"
-                     class="dropzone border border-2 rounded-3 p-4 text-center bg-white"
-                     style="border-style:dashed; cursor:pointer;">
-                  <div class="fw-semibold">Arrastra y suelta tu archivo aquí</div>
-                  <div class="text-muted small">o haz clic para elegir desde tu computadora</div>
-                  <div id="file-name" class="small mt-2 text-secondary"></div>
+            {% else %}
+              <form method="post" enctype="multipart/form-data" action="{{ url_for('main.index') }}">
+                <div class="mb-3">
+                  <label class="form-label">Ocupación (opcional):</label>
+                  <input type="text" class="form-control" name="occupation"
+                        placeholder="Ej.: Analista de Negocio, QA, DevOps"
+                        value="{{ occupation or '' }}">
                 </div>
 
-                <div class="form-text">Solo PDF/DOCX. Realizamos controles básicos de seguridad.</div>
-              </div>
+                <div class="mb-2">
+                  <label class="form-label">Sube tu CV (PDF o DOCX, máx. {{ max_mb or 2 }} MB):</label>
 
-              <div class="mb-3">
-                <label class="form-label">Pega la descripción del puesto:</label>
-                <textarea id="jobdesc" name="jobdesc"
-                          class="form-control"
-                          rows="8"
-                          maxlength="4000"
-                          required
-                          style="overflow-y:auto; overflow-x:hidden; white-space:pre-wrap; word-wrap:break-word; max-height:220px;">{{ jobdesc or '' }}</textarea>
+                  <!-- input real -->
+                  <input id="file-input" name="cv" type="file" accept=".pdf,.docx" class="visually-hidden">
 
-                <div class="d-flex justify-content-between align-items-center mt-1">
-                  <button type="button" id="btn-clear-jobdesc" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-eraser"></i> Limpiar
-                  </button>
-                  <span id="char-count" class="small text-muted">0/4000</span>
+                  <!-- zona drag&drop -->
+                  <div id="dropzone"
+                      class="dropzone border border-2 rounded-3 p-4 text-center bg-white"
+                      style="border-style:dashed; cursor:pointer;">
+                    <div class="fw-semibold">Arrastra y suelta tu archivo aquí</div>
+                    <div class="text-muted small">o haz clic para elegir desde tu computadora</div>
+                    <div id="file-name" class="small mt-2 text-secondary"></div>
+                  </div>
+
+                  <div class="form-text">Solo PDF/DOCX. Realizamos controles básicos de seguridad.</div>
                 </div>
-              </div>
 
-              <button type="submit" class="btn btn-primary w-100">
-                <i class="bi bi-search"></i> Analizar
-              </button>
-            </form>
-          {% endif %}
+                <div class="mb-3">
+                  <label class="form-label">Pega la descripción del puesto:</label>
+                  <textarea id="jobdesc" name="jobdesc"
+                            class="form-control"
+                            rows="8"
+                            maxlength="4000"
+                            required
+                            style="overflow-y:auto; overflow-x:hidden; white-space:pre-wrap; word-wrap:break-word; max-height:220px;">{{ jobdesc or '' }}</textarea>
+
+                  <div class="d-flex justify-content-between align-items-center mt-1">
+                    <button type="button" id="btn-clear-jobdesc" class="btn btn-sm btn-outline-secondary">
+                      <i class="bi bi-eraser"></i> Limpiar
+                    </button>
+                    <span id="char-count" class="small text-muted">0/4000</span>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">
+                  <i class="bi bi-search"></i> Analizar
+                </button>
+              </form>
+            {% endif %}
+          </div>
         </div>
       </div>
-
-    </div>
   </div>
 
   <!-- Panel derecho -->
@@ -214,64 +213,64 @@
     </div>
   </div>
 
-<!-- Resultado del análisis -->
-{% if feedback %}
-  <div class="card mt-4 p-4 shadow-sm">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <h3 class="mb-0">Análisis de la IA</h3>
-      <div class="d-flex gap-2">
-        {% if model_used == 1 %}
-          <span class="badge text-bg-primary model-badge"><i class="bi bi-cpu"></i> Modelo 1: OpenAI</span>
-        {% elif model_used == 2 %}
-          <span class="badge text-bg-success model-badge"><i class="bi bi-stars"></i> Modelo 2: Gemini</span>
-        {% endif %}
-        {% if exec_id %}
-          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('history.download_pdf', exec_id=exec_id) }}"><i class="bi bi-file-earmark-arrow-down"></i> Descargar PDF</a>
-        {% endif %}
-      </div>
-    </div>       
-    <!-- ANILLOS DE PUNTAJE (0–100 con color y tooltip correcto) -->
-    <div class="row g-3 align-items-center analysis-meters">
-      <div class="col-12 col-lg-6">
-        <div class="donut-host">
-          <!-- Donut JD -->
-          <div class="donut" data-score="{{ score_jd|default(0, true)|int }}">
-            <div class="donut-wrap">
-              <svg viewBox="-2 -2 40 40" class="donut-svg" aria-label="Coincidencia con Job Description" overflow="visible">
-                <circle class="donut-track"     cx="18" cy="18" r="15" pathLength="100"></circle>
-                <circle class="donut-indicator" cx="18" cy="18" r="15" pathLength="100"></circle>
-              </svg>
-              <div class="donut-label">{{ score_jd|default(0, true)|int }}%</div>
+  <!-- Resultado del análisis -->
+  {% if feedback %}
+    <div class="card mt-4 p-4 shadow-sm">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h3 class="mb-0">Análisis de la IA</h3>
+        <div class="d-flex gap-2">
+          {% if model_used == 1 %}
+            <span class="badge text-bg-primary model-badge"><i class="bi bi-cpu"></i> Modelo 1: OpenAI</span>
+          {% elif model_used == 2 %}
+            <span class="badge text-bg-success model-badge"><i class="bi bi-stars"></i> Modelo 2: Gemini</span>
+          {% endif %}
+          {% if exec_id %}
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('history.download_pdf', exec_id=exec_id) }}"><i class="bi bi-file-earmark-arrow-down"></i> Descargar PDF</a>
+          {% endif %}
+        </div>
+      </div>       
+      <!-- ANILLOS DE PUNTAJE (0–100 con color y tooltip correcto) -->
+      <div class="row g-3 align-items-center analysis-meters">
+        <div class="col-12 col-lg-6">
+          <div class="donut-host">
+            <!-- Donut JD -->
+            <div class="donut" data-score="{{ score_jd|default(0, true)|int }}">
+              <div class="donut-wrap">
+                <svg viewBox="-2 -2 40 40" class="donut-svg" aria-label="Coincidencia con Job Description" overflow="visible">
+                  <circle class="donut-track"     cx="18" cy="18" r="15" pathLength="100"></circle>
+                  <circle class="donut-indicator" cx="18" cy="18" r="15" pathLength="100"></circle>
+                </svg>
+                <div class="donut-label">{{ score_jd|default(0, true)|int }}%</div>
+              </div>
+              <div class="small text-muted mt-2">Coincidencia con Job Description</div>
             </div>
-            <div class="small text-muted mt-2">Coincidencia con Job Description</div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+          <div class="donut-host">
+            <!-- Donut ATS -->
+            <div class="donut" data-score="{{ score_ats|default(0, true)|int }}">
+              <div class="donut-wrap">
+                <svg viewBox="-2 -2 40 40" class="donut-svg" aria-label="Coincidencia con Plantilla CV ATS" overflow="visible">
+                  <circle class="donut-track"     cx="18" cy="18" r="15" pathLength="100"></circle>
+                  <circle class="donut-indicator" cx="18" cy="18" r="15" pathLength="100"></circle>
+                </svg>
+                <div class="donut-label">{{ score_ats|default(0, true)|int }}%</div>
+              </div>
+              <div class="small text-muted mt-2">Coincidencia con Plantilla CV ATS</div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="col-12 col-lg-6">
-        <div class="donut-host">
-          <!-- Donut ATS -->
-          <div class="donut" data-score="{{ score_ats|default(0, true)|int }}">
-            <div class="donut-wrap">
-              <svg viewBox="-2 -2 40 40" class="donut-svg" aria-label="Coincidencia con Plantilla CV ATS" overflow="visible">
-                <circle class="donut-track"     cx="18" cy="18" r="15" pathLength="100"></circle>
-                <circle class="donut-indicator" cx="18" cy="18" r="15" pathLength="100"></circle>
-              </svg>
-              <div class="donut-label">{{ score_ats|default(0, true)|int }}%</div>
-            </div>
-            <div class="small text-muted mt-2">Coincidencia con Plantilla CV ATS</div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <!-- disclaimer -->
+      {% if disclaimer %}
+        <div class="alert alert-info mt-3">{{ disclaimer }}</div>
+      {% endif %}
 
-    <!-- disclaime -->
-    {% if disclaimer %}
-      <div class="alert alert-info mt-3">{{ disclaimer }}</div>
-    {% endif %}
-
-    <!-- Pintar Iconos -->
-    {% if ats_details %}
+      <!-- Pintar Iconos -->
+      {% if ats_details %}
       <div class="card mt-3 mb-2">
         <div class="card-body py-3">
           <h6 class="mb-3">Checklist ATS detectado</h6>
@@ -318,15 +317,15 @@
           </div>
         </div>
       </div>
-    {% endif %}
+      {% endif %}
 
-    <!-- Análisis -->
-    <div class="mt-3">
-      {{ feedback|safe }}
-    </div>
+      <!-- Análisis -->
+      <div class="mt-3">
+        {{ feedback|safe }}
+      </div>
 
-    <!-- Lineamientas en el Reporte -->
-    <hr class="my-4">
+      <!-- Lineamientas en el Reporte -->
+      <hr class="my-4">
       <h5 class="mb-2">Lineamientos y equivalencias ATS</h5>
       <ul class="small mb-2">
         <li>Formato: <strong>PDF o DOCX</strong>. Idioma: <strong>Español o Inglés</strong>. Texto legible (no escaneado). Máx. {{ max_mb }} MB.</li>
@@ -364,292 +363,307 @@
           </ul>
         </div>
       </div>
-  </div>
-{% endif %}
+    </div>
+  {% endif %}
 
-<!-- Sugerencias (solo con sesión) -->
-{% if session.get('user_email') %}
-  <div class="card mt-4 p-4 shadow-sm">
-    <h4 class="mb-3"><i class="bi bi-chat-text"></i> ¿Tienes sugerencias para mejorar?</h4>
-    <form method="post" action="{{ url_for('main.leave_comment') }}">
-      <div class="mb-2">
-        <label class="form-label">Tu comentario</label>
-        <textarea class="form-control" name="comment" rows="3" maxlength="2000" required></textarea>
-      </div>
-      <div class="d-flex justify-content-between align-items-center">
-        <div class="small text-muted">Gracias por ayudar a mejorar el servicio.</div>
-        <button class="btn btn-outline-primary"><i class="bi bi-send"></i> Enviar</button>
-      </div>
-    </form>
-  </div>
-{% endif %}
+  <!-- Sugerencias (solo con sesión) -->
+  {% if session.get('user_email') %}
+    <div class="card mt-4 p-4 shadow-sm">
+      <h4 class="mb-3"><i class="bi bi-chat-text"></i> ¿Tienes sugerencias para mejorar?</h4>
+      <form method="post" action="{{ url_for('main.leave_comment') }}">
+        <div class="mb-2">
+          <label class="form-label">Tu comentario</label>
+          <textarea class="form-control" name="comment" rows="3" maxlength="2000" required></textarea>
+        </div>
+        <div class="d-flex justify-content-between align-items-center">
+          <div class="small text-muted">Gracias por ayudar a mejorar el servicio.</div>
+          <button class="btn btn-outline-primary"><i class="bi bi-send"></i> Enviar</button>
+        </div>
+      </form>
+    </div>
+  {% endif %}
 {% endblock %}
 
 {% block extra_js %}
-<script>
-(function () {
+  <script>
+    (function () {
 
-  
-  // ---------------------------
-  // 1) DONUTS (animación + color)
-  // ---------------------------
-  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+      
+      // ---------------------------
+      // 1) DONUTS (animación + color)
+      // ---------------------------
+      function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
 
-  function ind(el){ return el.querySelector('.donut-indicator'); }
-  function lbl(el){ return el.querySelector('.donut-label'); }
+      function ind(el){ return el.querySelector('.donut-indicator'); }
+      function lbl(el){ return el.querySelector('.donut-label'); }
 
-  function setColor(el, score){
-    const color = (score >= 75) ? '#28a745' : (score >= 50 ? '#ffc107' : '#dc3545');
-    ind(el).style.setProperty('--donut-color', color);
-  }
-  function setDash(el, val){ ind(el).style.setProperty('--dash', String(val)); }
-  function setLabel(el, val){ const l = lbl(el); if (l) l.textContent = Math.round(val) + '%'; }
-
-  function animateDonut(container, target, duration){
-    const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const to = Math.max(0, Math.min(100, parseInt(target || 0, 10)));
-    if (!ind(container)) return;
-
-    // fija el color desde el inicio (evita “puntito rojo”)
-    setColor(container, to);
-
-    if (prefersReduced || duration <= 0) {
-      setDash(container, to);
-      setLabel(container, to);
-      return;
-    }
-
-    const start = performance.now();
-    setDash(container, 0);
-    setLabel(container, 0);
-
-    function tick(now){
-      const t = Math.min(1, (now - start) / duration);
-      const eased = easeOutCubic(t);
-      const val = (to * eased);
-      setDash(container, val);
-      setLabel(container, val);
-      if (t < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  }
-
-  function init(){
-    const donuts = document.querySelectorAll('.donut');
-    if (!donuts.length) return;
-
-    if (!('IntersectionObserver' in window)) {
-      donuts.forEach(d => animateDonut(d, d.getAttribute('data-score') || 0, 900));
-      return;
-    }
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (!entry.isIntersecting) return;
-        const el = entry.target;
-        animateDonut(el, el.getAttribute('data-score') || 0, 900);
-        io.unobserve(el);
-      });
-    }, { threshold: 0.25 });
-
-    donuts.forEach(d => io.observe(d));
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
-
-
-  // -------------------------------------------
-  // 2) UPLOADER (click + drag&drop con feedback)
-  // -------------------------------------------
-  (function initUploader(){
-    const dz = document.getElementById('dropzone');
-    const fi = document.getElementById('file-input');
-    const fn = document.getElementById('file-name');
-    if (!dz || !fi || !fn) return;
-
-    const MAX_MB = 2; // cambia si subís el límite real
-    const MAX_BYTES = MAX_MB * 1024 * 1024;
-
-    function humanKB(bytes){ return Math.max(1, Math.round((bytes||0)/1024)) + ' KB'; }
-
-    function clearVisual() {
-      dz.classList.remove('ok','dragover','bg-success-subtle','border-success','bg-light');
-      fn.classList.remove('text-success');
-      fn.classList.add('text-secondary');
-      fn.textContent = '';
-    }
-
-    function showOK(file) {
-      fn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> ' +
-                     'Archivo: ' + file.name + ' (' + humanKB(file.size) + ')';
-      fn.classList.remove('text-secondary');
-      fn.classList.add('text-success');
-      dz.classList.add('ok','border-success','bg-success-subtle');
-    }
-
-    function validar(file) {
-      if (!file) return false;
-      if (!/\.(pdf|docx)$/i.test(file.name)) {
-        alert('Formato no permitido. Solo PDF o DOCX.');
-        return false;
+      function setColor(el, score){
+        const color = (score >= 75) ? '#28a745' : (score >= 50 ? '#ffc107' : '#dc3545');
+        ind(el).style.setProperty('--donut-color', color);
       }
-      if (file.size > MAX_BYTES) {
-        alert('El archivo supera el límite de ' + MAX_MB + ' MB.');
-        return false;
-      }
-      return true;
-    }
+      function setDash(el, val){ ind(el).style.setProperty('--dash', String(val)); }
+      function setLabel(el, val){ const l = lbl(el); if (l) l.textContent = Math.round(val) + '%'; }
 
-    function setFromDrop(file){
-      if (!validar(file)) return;
-      try {
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        fi.files = dt.files;
-        showOK(file);
-      } catch (e) {
-        console.warn('DataTransfer no disponible. Fallback:', e);
-        showOK(file);
-        alert('Tu navegador no permite asignar el archivo automáticamente. Haz clic para seleccionarlo.');
-      }
-    }
+      function animateDonut(container, target, duration){
+        const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const to = Math.max(0, Math.min(100, parseInt(target || 0, 10)));
+        if (!ind(container)) return;
 
-    // click en zona -> abre selector
-    dz.addEventListener('click', function(e){ e.preventDefault(); fi.click(); });
+        // fija el color desde el inicio (evita “puntito rojo”)
+        setColor(container, to);
 
-    // selector manual
-    fi.addEventListener('change', function(e){
-      const f = e.target.files && e.target.files[0];
-      if (!f) { clearVisual(); return; }
-      if (!validar(f)) { fi.value = ''; clearVisual(); return; }
-      showOK(f);
-    });
-
-    // drag UI
-    dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('dragover','bg-light'); });
-    dz.addEventListener('dragenter', function(e){ e.preventDefault(); dz.classList.add('dragover','bg-light'); });
-    dz.addEventListener('dragleave', function(){ dz.classList.remove('dragover','bg-light'); });
-
-    dz.addEventListener('drop', function(e){
-      e.preventDefault();
-      dz.classList.remove('dragover','bg-light');
-      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-      setFromDrop(f);
-    });
-
-    // Evita que soltar en la página reemplace el documento
-    window.addEventListener('dragover', e => e.preventDefault());
-    window.addEventListener('drop', e => e.preventDefault());
-
-    // Validación al enviar
-    const frm = dz.closest('form');
-    if (frm) {
-      frm.addEventListener('submit', function(e){
-        if (!fi.files || fi.files.length === 0) {
-          e.preventDefault();
-          alert('Por favor, selecciona un archivo PDF o DOCX.');
+        if (prefersReduced || duration <= 0) {
+          setDash(container, to);
+          setLabel(container, to);
+          return;
         }
-      });
-    }
-  })();
+
+        const start = performance.now();
+        setDash(container, 0);
+        setLabel(container, 0);
+
+        function tick(now){
+          const t = Math.min(1, (now - start) / duration);
+          const eased = easeOutCubic(t);
+          const val = (to * eased);
+          setDash(container, val);
+          setLabel(container, val);
+          if (t < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      }
+
+      function init(){
+        const donuts = document.querySelectorAll('.donut');
+        if (!donuts.length) return;
+
+        if (!('IntersectionObserver' in window)) {
+          donuts.forEach(d => animateDonut(d, d.getAttribute('data-score') || 0, 900));
+          return;
+        }
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            const el = entry.target;
+            animateDonut(el, el.getAttribute('data-score') || 0, 900);
+            io.unobserve(el);
+          });
+        }, { threshold: 0.25 });
+
+        donuts.forEach(d => io.observe(d));
+      }
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+      else init();
 
 
-  // ----------------------------
-  // 3) Tooltips de Bootstrap
-  // ----------------------------
-  (function initTooltips(){
-    const triggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    triggers.forEach(el => { try { new bootstrap.Tooltip(el, { container: 'body', trigger: 'hover focus' }); } catch(_){} });
-  })();
+      // -------------------------------------------
+      // 2) UPLOADER (click + drag&drop con feedback)
+      // -------------------------------------------
+      (function initUploader(){
+        const dz = document.getElementById('dropzone');
+        const fi = document.getElementById('file-input');
+        const fn = document.getElementById('file-name');
+        if (!dz || !fi || !fn) return;
+
+        const MAX_MB = 2; // cambia si subís el límite real
+        const MAX_BYTES = MAX_MB * 1024 * 1024;
+
+        function humanKB(bytes){ return Math.max(1, Math.round((bytes||0)/1024)) + ' KB'; }
+
+        function clearVisual() {
+          dz.classList.remove('ok','dragover','bg-success-subtle','border-success','bg-light');
+          fn.classList.remove('text-success');
+          fn.classList.add('text-secondary');
+          fn.textContent = '';
+        }
+
+        function showOK(file) {
+          fn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> ' +
+                        'Archivo: ' + file.name + ' (' + humanKB(file.size) + ')';
+          fn.classList.remove('text-secondary');
+          fn.classList.add('text-success');
+          dz.classList.add('ok','border-success','bg-success-subtle');
+        }
+
+        function validar(file) {
+          if (!file) return false;
+          if (!/\.(pdf|docx)$/i.test(file.name)) {
+            alert('Formato no permitido. Solo PDF o DOCX.');
+            return false;
+          }
+          if (file.size > MAX_BYTES) {
+            alert('El archivo supera el límite de ' + MAX_MB + ' MB.');
+            return false;
+          }
+          return true;
+        }
+
+        function setFromDrop(file){
+          if (!validar(file)) return;
+          try {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            fi.files = dt.files;
+            showOK(file);
+          } catch (e) {
+            console.warn('DataTransfer no disponible. Fallback:', e);
+            showOK(file);
+            alert('Tu navegador no permite asignar el archivo automáticamente. Haz clic para seleccionarlo.');
+          }
+        }
+
+        // click en zona -> abre selector
+        dz.addEventListener('click', function(e){ e.preventDefault(); fi.click(); });
+
+        // selector manual
+        fi.addEventListener('change', function(e){
+          const f = e.target.files && e.target.files[0];
+          if (!f) { clearVisual(); return; }
+          if (!validar(f)) { fi.value = ''; clearVisual(); return; }
+          showOK(f);
+        });
+
+        // drag UI
+        dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('dragover','bg-light'); });
+        dz.addEventListener('dragenter', function(e){ e.preventDefault(); dz.classList.add('dragover','bg-light'); });
+        dz.addEventListener('dragleave', function(){ dz.classList.remove('dragover','bg-light'); });
+
+        dz.addEventListener('drop', function(e){
+          e.preventDefault();
+          dz.classList.remove('dragover','bg-light');
+          const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+          setFromDrop(f);
+        });
+
+        // Evita que soltar en la página reemplace el documento
+        window.addEventListener('dragover', e => e.preventDefault());
+        window.addEventListener('drop', e => e.preventDefault());
+
+        // Validación al enviar
+        const frm = dz.closest('form');
+        if (frm) {
+          frm.addEventListener('submit', function(e){
+            if (!fi.files || fi.files.length === 0) {
+              e.preventDefault();
+              alert('Por favor, selecciona un archivo PDF o DOCX.');
+            }
+          });
+        }
+      })();
 
 
-  // ----------------------------------------------------------
-  // 4) Job Description: localStorage + botón limpiar + contador
-  // ----------------------------------------------------------
-  (function initJobDesc(){
-    const ta = document.getElementById('jobdesc');
-    const btnClear = document.getElementById('btn-clear-jobdesc');
-    const counter = document.getElementById('char-count');
-    if (!ta) return;
+      // ----------------------------
+      // 3) Tooltips de Bootstrap
+      // ----------------------------
+      (function initTooltips(){
+        const triggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        triggers.forEach(el => { try { new bootstrap.Tooltip(el, { container: 'body', trigger: 'hover focus' }); } catch(_){} });
+      })();
 
-    const KEY = 'cvms_jobdesc';
 
-    // inicializa desde localStorage si el servidor no trajo contenido
-    if (!ta.value.trim()) {
-      const saved = localStorage.getItem(KEY);
-      if (saved) ta.value = saved.slice(0, 4000); // seguridad por si había más
-    }
+      // ----------------------------------------------------------
+      // 4) Job Description: localStorage + botón limpiar + contador
+      // ----------------------------------------------------------
+      (function initJobDesc(){
+        const ta = document.getElementById('jobdesc');
+        const btnClear = document.getElementById('btn-clear-jobdesc');
+        const counter = document.getElementById('char-count');
+        if (!ta) return;
 
-    // guarda en tiempo real
-    ta.addEventListener('input', function(){
-      if (ta.value.length > 4000) ta.value = ta.value.slice(0, 4000);
-      try { localStorage.setItem(KEY, ta.value); } catch(e) {}
-      if (counter) counter.textContent = ta.value.length + '/4000';
-    });
+        const KEY = 'cvms_jobdesc';
 
-    // contador inicial
-    if (counter) counter.textContent = ta.value.length + '/4000';
+        // inicializa desde localStorage si el servidor no trajo contenido
+        if (!ta.value.trim()) {
+          const saved = localStorage.getItem(KEY);
+          if (saved) ta.value = saved.slice(0, 4000); // seguridad por si había más
+        }
 
-    // botón limpiar
-    if (btnClear) {
-      btnClear.addEventListener('click', function(){
-        ta.value = '';
-        if (counter) counter.textContent = '0/4000';
-        try { localStorage.removeItem(KEY); } catch(e) {}
-        ta.focus();
-      });
-    }
+        // guarda en tiempo real
+        ta.addEventListener('input', function(){
+          if (ta.value.length > 4000) ta.value = ta.value.slice(0, 4000);
+          try { localStorage.setItem(KEY, ta.value); } catch(e) {}
+          if (counter) counter.textContent = ta.value.length + '/4000';
+        });
 
-    // asegura persistencia justo antes del submit
-    const frm = ta.closest('form');
-    if (frm) {
-      frm.addEventListener('submit', function(){
-        try { localStorage.setItem(KEY, ta.value); } catch(e) {}
-      });
-    }
-  })();
+        // contador inicial
+        if (counter) counter.textContent = ta.value.length + '/4000';
 
-})();
+        // botón limpiar
+        if (btnClear) {
+          btnClear.addEventListener('click', function(){
+            ta.value = '';
+            if (counter) counter.textContent = '0/4000';
+            try { localStorage.removeItem(KEY); } catch(e) {}
+            ta.focus();
+          });
+        }
 
-// --- STEP PER: Subir CV -> Agregar puesto -> Ver resultados ---
-(function(){
-  const el = document.getElementById('analysis-stepper');
-  if(!el) return;
+        // asegura persistencia justo antes del submit
+        const frm = ta.closest('form');
+        if (frm) {
+          frm.addEventListener('submit', function(){
+            try { localStorage.setItem(KEY, ta.value); } catch(e) {}
+          });
+        }
+      })();
+      
+      
+      // ----------------------------------------------------------      
+      // --- STEP PER: Subir CV -> Agregar puesto -> Ver resultados ---
+      // ----------------------------------------------------------
+      (function stepperLogic(){
+        var stepper = document.getElementById('analysis-stepper');
+        if (!stepper) return;
 
-  const hasFeedback = el.getAttribute('data-has-feedback') === '1';
-  const fi = document.getElementById('file-input');   // tu input hidden real
-  const ta = document.getElementById('jobdesc');      // textarea de descripción
+        var hasFeedback = stepper.getAttribute('data-has-feedback') === '1';
+        var fi  = document.getElementById('file-input');
+        var ta  = document.getElementById('jobdesc');
 
-  const steps = Array.from(el.querySelectorAll('.step'));
-  function setState(stepNum){ // 0=ninguno, 1=CV, 2=JD, 3=Resultados
-    steps.forEach((s,i)=>{
-      s.classList.remove('step--done','step--active');
-      const idx = i+1;
-      if(idx < stepNum)      s.classList.add('step--done');
-      else if(idx === stepNum) s.classList.add('step--active');
-    });
-  }
+        function setState(stepNum, state){
+          // state: "pending" | "active" | "complete"
+          var el = stepper.querySelector('.step[data-step="'+stepNum+'"]');
+          if (!el) return;
+          el.classList.remove('is-active','is-complete');
+          if (state === 'active')   el.classList.add('is-active');
+          if (state === 'complete') el.classList.add('is-complete');
+        }
 
-  function computeStep(){
-    const haveFile = !!(fi && fi.files && fi.files.length > 0);
-    const haveDesc = !!(ta && ta.value && ta.value.trim().length > 0);
-    if(hasFeedback) return 3;
-    if(haveFile && haveDesc) return 2;    // listo para enviar
-    if(haveFile) return 1;
-    return 1;                             // arrancamos en 1 por guía
-  }
+        function update(){
+          var fileOk = !!(fi && fi.files && fi.files.length);
+          var jobOk  = !!(ta && ta.value.trim().length);
 
-  function render(){ setState(computeStep()); }
+          // reset
+          setState(1,'pending'); setState(2,'pending'); setState(3,'pending');
 
-  // eventos
-  if(fi) fi.addEventListener('change', render);
-  if(ta) ta.addEventListener('input', render);
+          if (fileOk){ setState(1,'complete'); } else { setState(1,'active'); }
 
-  // primera pintura
-  render();
-})();
+          if (fileOk && jobOk){
+            setState(2,'complete');
+            setState(3, hasFeedback ? 'complete' : 'active');
+          } else if (fileOk && !jobOk){
+            setState(2,'active');
+          } else {
+            // aún sin archivo: solo el paso 1 activo
+            setState(1,'active');
+          }
+        }
 
-</script>
+        // inicializa
+        update();
+
+        // escucha cambios
+        if (fi) fi.addEventListener('change', update);
+        if (ta) ta.addEventListener('input', update);
+
+        // si tu flujo recarga feedback en la misma vista, se refleja
+        // (ya marcaste hasFeedback en el data-attribute desde Jinja)
+      })();
+
+    })();
+
+    
+  </script>
 {% endblock %}
 
 
