@@ -12,3 +12,4 @@ class Config:
     GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
     APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:10000")
     ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
+    APP_VERSION = "v1.0.0"

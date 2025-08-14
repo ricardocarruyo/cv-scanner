@@ -10,6 +10,7 @@ from sqlalchemy import asc                      # <-- agrega asc
 from datetime import datetime                   # <-- para timestamps
 from ..services.files import extract_pdf, extract_docx
 from ..services.ats import evaluate_ats_compliance
+from app.config import APP_VERSION
 
 
 bp = Blueprint("main", __name__)
@@ -141,7 +142,7 @@ def index():
                         feedback_text = "\n".join(lines[1:]).lstrip()
 
             feedback_html = sanitize_markdown(feedback_text) if feedback_text else None
-            
+
             # Idioma y disclaimer para mostrar bajo el análisis
             idioma_detectado = detectar_idioma(cv_text + " " + jobdesc)
             disclaimer = disclaimer_text(idioma_detectado)
@@ -210,7 +211,7 @@ def index():
             flash("Ocurrió un error al procesar el análisis. Inténtalo nuevamente.", "danger")
             return redirect(url_for("main.index"))
 
-    return render_template("index.html",
+    return render_template("index.html", version=APP_VERSION,
                            email=email, name=name, picture=picture,
                            feedback=None,
                            score_jd=None, score_ats=None,
