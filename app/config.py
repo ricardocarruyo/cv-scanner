@@ -4,7 +4,7 @@ class Config:
     SECRET_KEY = os.getenv("FLASK_SECRET", "dev-secret-change-me")
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///usage.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10MB
+    MAX_CONTENT_LENGTH = 2 * 1024 * 1024  # 2MB
 
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
