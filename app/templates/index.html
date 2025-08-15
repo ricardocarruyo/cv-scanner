@@ -421,13 +421,10 @@
 {% block extra_js %}
 <script>
 (function () {
-
   /* ===========================
    * 1) DONUTS (animación + color)
    * =========================== */
   function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
-  const q = sel => document.querySelector(sel);
-
   function ind(el){ return el.querySelector('.donut-indicator'); }
   function lbl(el){ return el.querySelector('.donut-label'); }
 
@@ -442,23 +439,18 @@
     const ioRed = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const to = Math.max(0, Math.min(100, parseInt(target || 0, 10)));
     if (!ind(container)) return;
-
     setColor(container, to);
 
     if (ioRed || duration <= 0) {
-      setDash(container, to);
-      setLabel(container, to);
-      return;
+      setDash(container, to); setLabel(container, to); return;
     }
     const start = performance.now();
-    setDash(container, 0);
-    setLabel(container, 0);
+    setDash(container, 0); setLabel(container, 0);
 
     function tick(now){
       const t = Math.min(1, (now - start) / duration);
-      const val = to * (1 - Math.pow(1 - t, 3)); // easeOutCubic inline
-      setDash(container, val);
-      setLabel(container, val);
+      const val = to * easeOutCubic(t);
+      setDash(container, val); setLabel(container, val);
       if (t < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
@@ -485,7 +477,7 @@
   }
 
   /* =========================================
-   * 2) UPLOADER (click + drag&drop + feedback)
+   * 2) Uploader (click + drag&drop + limpiar)
    * ========================================= */
   function initUploader(){
     const dz = document.getElementById('dropzone');
@@ -493,7 +485,7 @@
     const fn = document.getElementById('file-name');
     if (!dz || !fi || !fn) return;
 
-    const MAX_MB = 2; // ajusta si cambias el límite real
+    const MAX_MB = 2;
     const MAX_BYTES = MAX_MB * 1024 * 1024;
 
     const humanKB = bytes => Math.max(1, Math.round((bytes || 0) / 1024)) + ' KB';
@@ -515,15 +507,26 @@
 
     function validar(file) {
       if (!file) return false;
-      if (!/\.(pdf|docx)$/i.test(file.name)) {
-        alert('Formato no permitido. Solo PDF o DOCX.');
-        return false;
-      }
-      if (file.size > MAX_BYTES) {
-        alert('El archivo supera el límite de ' + MAX_MB + ' MB.');
-        return false;
-      }
+      if (!/\.(pdf|docx)$/i.test(file.name)) { alert('Formato no permitido. Solo PDF o DOCX.'); return false; }
+      if (file.size > MAX_BYTES) { alert('El archivo supera el límite de ' + MAX_MB + ' MB.'); return false; }
       return true;
+    }
+
+    // Helper para drag&drop -> input[type=file]
+    function setFromDrop(file){
+      if (!file) { fi.value = ''; clearVisual(); fi.dispatchEvent(new Event('change', {bubbles:true})); return; }
+      if (!validar(file)) { fi.value = ''; clearVisual(); fi.dispatchEvent(new Event('change', {bubbles:true})); return; }
+
+      try {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fi.files = dt.files; // puede fallar en navegadores viejos
+      } catch(_) {
+        // fallback: no podemos asignar files; al menos mostramos OK visual
+      }
+      showOK(file);
+      // avisamos a cualquier listener (badges)
+      fi.dispatchEvent(new Event('change', {bubbles:true}));
     }
 
     // click en zona -> abre selector
@@ -563,26 +566,28 @@
       });
     }
 
-    // Soporte opcional al botón "Limpiar archivo" si existe
+    // Botón "Limpiar archivo"
     const btnClearFile = document.getElementById('btn-clear-file');
     if (btnClearFile) {
       btnClearFile.addEventListener('click', function(){
         fi.value = '';
         clearVisual();
+        // importante: notificar para apagar el badge 1 y 3
+        fi.dispatchEvent(new Event('change', {bubbles:true}));
       });
     }
   }
 
-  /* ================================
-   * 3) Tooltips de Bootstrap
-   * ================================ */
+  /* ==============================
+   * 3) Tooltips (Bootstrap)
+   * ============================== */
   function initTooltips(){
     const triggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     triggers.forEach(el => { try { new bootstrap.Tooltip(el, { container: 'body', trigger: 'hover focus' }); } catch(_){} });
   }
 
   /* ======================================================
-   * 4) JD: localStorage + botón limpiar + contador
+   * 4) JD: localStorage + limpiar + contador + eventos
    * ====================================================== */
   function initJobDesc(){
     const ta = document.getElementById('jobdesc');
@@ -605,10 +610,13 @@
       if (ta.value.length > 4000) ta.value = ta.value.slice(0, 4000);
       try { localStorage.setItem(KEY, ta.value); } catch(e) {}
       paintCount();
+      // evento custom para otros módulos
+      ta.dispatchEvent(new Event('cvms-jd-change', {bubbles:true}));
     });
 
-    // contador inicial
+    // contador inicial + evento para badges (por si vino del localStorage)
     paintCount();
+    ta.dispatchEvent(new Event('cvms-jd-change', {bubbles:true}));
 
     // botón limpiar
     if (btnClear) {
@@ -616,6 +624,8 @@
         ta.value = '';
         paintCount();
         try { localStorage.removeItem(KEY); } catch(e) {}
+        // notificar a badges para apagar el paso 2 y 3
+        ta.dispatchEvent(new Event('input', {bubbles:true}));
         ta.focus();
       });
     }
@@ -627,24 +637,12 @@
         try { localStorage.setItem(KEY, ta.value); } catch(e) {}
       });
     }
-  }  
-
-  /* ===========
-   * BOOT
-   * =========== */
-  function boot(){
-    initDonuts();
-    initUploader();
-    initTooltips();
-    initJobDesc();
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
-  else boot();
 
-  /* ===========================
-   * 5) INICIALIZACIÓN DE BADGES
-   * =========================== */
-  (function initInlineBadges(){
+  /* ==========================
+   * 5) Badges ① ② ③
+   * ========================== */
+  function initBadges(){
     const fi = document.getElementById('file-input');
     const ta = document.getElementById('jobdesc');
 
@@ -658,33 +656,39 @@
     const hasJD   = () => !!(ta.value && ta.value.trim().length > 0);
 
     function paint(){
-      // ① encendido si hay archivo
       b1.classList.toggle('is-on', hasFile());
-
-      // ② encendido si hay JD
       b2.classList.toggle('is-on', hasJD());
 
-      // ③ “listo” (verde pulsante) solo si ① y ② están OK
       const ready = hasFile() && hasJD();
       b3.classList.toggle('is-ready', ready);
-      // si no está listo, vuelve al estado inicial
       if (!ready) b3.classList.remove('is-ready');
     }
 
-    // eventos
     fi.addEventListener('change', paint);
     ta.addEventListener('input', paint);
-
-    // Integramos con tu JS de drag&drop/localStorage (si emite eventos custom)
     ta.addEventListener('cvms-jd-change', paint);
 
-    // Primera pintura
+    // primera pintura ya con JD restaurado
     paint();
-  })();
+  }
+
+  /* ===========
+   * BOOT
+   * =========== */
+  function boot(){
+    initDonuts();
+    initUploader();
+    initTooltips();
+    initJobDesc();
+    initBadges(); // <- ahora va después de initJobDesc
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
 
 })();
 </script>
 {% endblock %}
+
 
 
 
