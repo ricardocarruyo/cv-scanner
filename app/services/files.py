@@ -1,85 +1,146 @@
+# app/services/files.py
+from __future__ import annotations
+
+import io
+from typing import Tuple, Dict, Any, List, Set
+
 import fitz  # PyMuPDF
 from docx import Document
-import io
-from typing import Tuple, Dict, Any, List
-from pdfminer.high_level import extract_text
+from docx.opc.constants import RELATIONSHIP_TYPE as RT
 
+
+def _normalize_font_name(name: str) -> str:
+    """
+    Normaliza nombres de fuentes embebidas en PDF/DOCX a algo comparables
+    con tu lista GOOD_FONTS (arial, calibri, helvetica, verdana, etc).
+    Ejemplos: 'ABCDEE+ArialMT' -> 'arial', 'Arial-BoldMT' -> 'arial'
+    """
+    if not name:
+        return ""
+    f = name.lower()
+
+    # Quitar prefijos de subconjunto "ABCDEE+"
+    if "+" in f:
+        f = f.split("+", 1)[1]
+
+    # Quitar sufijos típicos de Adobe/PS
+    for rm in ("-boldmt", "-italicmt", "-mt", "-psmt", "mt", "psmt"):
+        f = f.replace(rm, "")
+
+    # Normalizaciones simples
+    f = f.replace("bold", "").replace("italic", "").strip()
+    # Mapear variantes comunes a su familia base
+    f = f.replace("arial", "arial")
+    f = f.replace("helveticaneue", "helvetica")
+    f = f.replace("helvetica", "helvetica")
+    f = f.replace("calibri", "calibri")
+    f = f.replace("verdana", "verdana")
+    f = f.replace("georgia", "georgia")
+    f = f.replace("timesnewroman", "times new roman")
+    f = f.replace("times new roman", "times new roman")
+    f = f.replace("inter", "inter")
+    f = f.replace("source sans pro", "source sans pro")
+
+    # último saneo
+    return f.strip()
+
+
+# -----------------------
+# PDF con PyMuPDF (fitz)
+# -----------------------
 def extract_pdf(data: bytes) -> Tuple[str, Dict[str, Any]]:
     """
-    Devuelve:
-      texto (str),
-      pdf_meta: {
-        'pages': int,
-        'images': int,
-        'fonts': List[str]   # <-- NUEVO
-      }
+    Devuelve (texto, meta) donde meta incluye:
+      - pages: int
+      - images: int
+      - fonts: list[str]  (familias normalizadas)
     """
-    text = ""
-    pages = 0
+    doc = fitz.open(stream=data, filetype="pdf")
+    pages = doc.page_count
+
+    text_parts: List[str] = []
     images = 0
-    fonts: List[str] = []
+    fonts: Set[str] = set()
 
-    # 1) Intento preferido: PyMuPDF (fitz) — permite leer fuentes con fiabilidad
-    try:        
-        with fitz.open(stream=data, filetype="pdf") as doc:
-            pages = doc.page_count
-            for page in doc:
-                # texto
-                text += page.get_text("text")
+    for page in doc:
+        # Texto "plano"
+        text_parts.append(page.get_text("text"))
 
-                # imágenes
-                try:
-                    images += len(page.get_images(full=True))
-                except Exception:
-                    pass
+        # Contar imágenes reales de la página
+        images += len(page.get_images(full=True))
 
-                # fuentes desde spans
-                try:
-                    d = page.get_text("dict")
-                    for block in d.get("blocks", []):
-                        for line in block.get("lines", []):
-                            for span in line.get("spans", []):
-                                fname = span.get("font")
-                                if fname:
-                                    fonts.append(str(fname))
-                except Exception:
-                    # si falla la extracción estructurada, seguimos con lo que tengamos
-                    pass
+        # Extraer fuentes a partir de los spans
+        d = page.get_text("dict")
+        for block in d.get("blocks", []):
+            if block.get("type") != 0:
+                continue
+            for line in block.get("lines", []):
+                for span in line.get("spans", []):
+                    fname = _normalize_font_name(span.get("font") or "")
+                    if fname:
+                        fonts.add(fname)
 
-        pdf_meta = {"pages": pages, "images": images, "fonts": sorted(set(fonts))}
-        return text, pdf_meta
+    doc.close()
 
-    except Exception:
-        # 2) Fallback sin PyMuPDF (solo texto, sin fuentes)
-        pass
+    text = "\n".join(text_parts).strip()
+    meta = {
+        "pages": pages,
+        "images": images,
+        "fonts": sorted(fonts),
+    }
+    return text, meta
 
-    # Fallback simple: intenta extraer texto con pdfminer o PyPDF2 si ya los usas
-    try:
-        # ejemplo con pdfminer.six de manera muy simple       
-        text = extract_text(io.BytesIO(data))
-    except Exception:
-        text = ""
 
-    # Sin acceso a fuentes en este camino
-    return text, {"pages": 0, "images": 0, "fonts": []}
-
-def extract_docx(data: bytes):
-    # python-docx necesita un archivo; lo cargamos a tmp en memoria
-    import io
+# -----------------------
+# DOCX con python-docx
+# -----------------------
+def extract_docx(data: bytes) -> Tuple[str, Dict[str, Any]]:
+    """
+    Devuelve (texto, meta) donde meta incluye:
+      - tables: int
+      - images: int
+      - fonts: list[str] (familias normalizadas si se encuentran)
+    """
     bio = io.BytesIO(data)
-    d = Document(bio)
+    doc = Document(bio)
 
-    # texto
-    parts = []
-    for p in d.paragraphs:
-        parts.append(p.text or "")
+    # Texto (párrafos + celdas de tablas)
+    parts: List[str] = []
+    for p in doc.paragraphs:
+        parts.append(p.text)
 
-    # tablas / imágenes
-    tables = len(d.tables)
-    images = 0
-    # conteo básico de imágenes: shapes en headers/inline
-    for r in d.inline_shapes:
-        images += 1
+    # Texto de tablas (opcional pero útil)
+    for tbl in doc.tables:
+        for row in tbl.rows:
+            for cell in row.cells:
+                if cell.text:
+                    parts.append(cell.text)
 
-    meta = {"tables": tables, "images": images}
-    return "\n".join(parts), meta
+    # Contar tablas
+    tables = len(doc.tables)
+
+    # Contar imágenes reales del paquete DOCX
+    # (relaciones de tipo IMAGE)
+    images = sum(1 for r in doc.part.rels.values() if r.reltype == RT.IMAGE)
+
+    # Familia tipográfica: best-effort (runs pueden no tenerla seteada)
+    fonts: Set[str] = set()
+    for p in doc.paragraphs:
+        for run in p.runs:
+            name = None
+            if run.font and run.font.name:
+                name = run.font.name
+            elif run._element.rPr is not None and run._element.rPr.rFonts is not None:
+                # fallback XML
+                rfs = run._element.rPr.rFonts
+                name = rfs.ascii or rfs.hAnsi or rfs.cs or rfs.eastAsia
+            if name:
+                fonts.add(_normalize_font_name(str(name)))
+
+    text = "\n".join([t for t in parts if t is not None]).strip()
+    meta = {
+        "tables": tables,
+        "images": images,
+        "fonts": sorted([f for f in fonts if f]),
+    }
+    return text, meta
