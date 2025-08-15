@@ -41,79 +41,54 @@
     footer { background: #fff; border-top: 1px solid #dee2e6; padding: 1rem 0; }
 
     .navbar-brand:focus, .navbar-brand:focus-visible { outline: none !important; box-shadow: none !important; }
-    .navbar-brand img { height: 24px; width: auto; display: inline-block; }
-
-    /* === STEPPER HORIZONTAL ================================================== */ 
-    .stepper{
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      gap:1.25rem;                 /* espacio “visual” entre bloques */
-      position:relative;
-      padding:.5rem 0;
-    }
-
-    .step{
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      text-align:center;
-    }
-
-    .step__bullet{
-      width:36px; height:36px; border-radius:50%;
-      display:grid; place-items:center; font-weight:700;
-      background:#f1f3f5; color:#6c757d; border:2px solid #dee2e6;
-      transition:all .25s ease;
-      box-shadow:0 0 0 0 rgba(13,110,253,0);
-    }
-    .step--active .step__bullet{
-      border-color:#0d6efd; color:#0d6efd; background:#eef5ff;
-      box-shadow:0 0 0 6px rgba(13,110,253,.10);
-    }
-    .step--done .step__bullet{
-      background:#0d6efd; color:#fff; border-color:#0d6efd;
-    }
-    .step__label{ margin-top:.35rem; font-size:.9rem; color:#495057; }
-
-    /* Conectores: ancho fijo + solape para “tocar” los círculos */
-    .stepper-connector{
-      height:4px;
-      width:80px;                    /* largo del tramo */
-      border-radius:4px;
-      background:#e9ecef;
-      align-self:center;
-      transition:background-color .25s ease, opacity .25s ease;
-      opacity:.95;
-
-      /* solapa 18px en cada lado (la mitad del radio del bullet) */
-      margin:0 -18px;
-    }
-    .stepper-connector.is-done{   background:#0d6efd66; }
-    .stepper-connector.is-active{ background:#0d6efd; }
-
-    @media (max-width: 576px){
-      .stepper{ gap:.75rem; }
-      .stepper-connector{ width:56px; margin:0 -16px; }
-    } 
-    /* FIN STEPPER HORIZONTAL ================================================== */
-
-    /* Línea gris finita bajo el stepper (opcional) */
-    .stepper-divider{ border-top: 1px solid #e9ecef; margin-top: .25rem; }
+    .navbar-brand img { height: 24px; width: auto; display: inline-block; }  
 
     /* === IGUALAR ALTURAS DE LOS DOS PANELES ================================= */
     .equal-panels.row{ align-items: stretch; }
-    .equal-panels .card{ height: 100%; }
-
-    /* Dropzone "OK" visual cuando hay archivo */
-    .dropzone.ok{
-      border-color: #198754 !important;
-      background-color: #e9f7ef;
-    }    
+    .equal-panels .card{ height: 100%; }  
   </style>
 
+{% block extra_head %}
+<style>
+  /* Indicadores circulares 1–2–3 */
+  .badge-circle{
+    --on-bg: #0d6efd;       /* azul encendido */
+    --off-bg:#e9ecef;       /* gris apagado  */
+    --on-fg:#fff;
+    --off-fg:#6c757d;
 
-  {% block extra_head %}{% endblock %}
+    width: 32px; height: 32px; border-radius: 50%;
+    display: inline-grid; place-items: center;
+    font-weight: 700; font-size: .95rem;
+    background: var(--off-bg); color: var(--off-fg);
+    border: 2px solid #dee2e6;
+    transition: background .2s ease, color .2s ease, box-shadow .2s ease;
+    box-shadow: 0 0 0 0 rgba(13,110,253,0);
+    line-height: 1;
+  }
+  .badge-circle.is-on{
+    background: var(--on-bg); color: var(--on-fg); border-color: var(--on-bg);
+    box-shadow: 0 0 0 4px rgba(13,110,253,.15);
+  }
+
+  /* Parpadeo suave cuando ③ está listo */
+  @keyframes pulse {
+    0%   { transform: scale(1);   box-shadow: 0 0 0 0 rgba(13,110,253,.35); }
+    70%  { transform: scale(1.06); box-shadow: 0 0 0 10px rgba(13,110,253,0); }
+    100% { transform: scale(1);   box-shadow: 0 0 0 0 rgba(13,110,253,0); }
+  }
+  .badge-circle.is-ready{
+    background:#28a745; border-color:#28a745; /* verde “listo” */
+    color:#fff;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+
+  /* Pequeños ajustes de alineación en labels/botón */
+  .label-with-badge{ display:flex; align-items:center; gap:.5rem; }
+  .before-button{ display:flex; align-items:center; gap:.5rem; }
+</style>
+{% endblock %}
+
 </head>
 <body class="d-flex flex-column min-vh-100">
   <!-- Navbar -->  

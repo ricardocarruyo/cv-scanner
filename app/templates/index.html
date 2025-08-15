@@ -63,33 +63,6 @@
 {% endblock %}
 
 {% block content %}
-  <!-- STEPPER: Progreso del análisis -->
-  <div id="analysis-stepper"
-      class="stepper my-3"
-      data-has-feedback="{{ 1 if feedback else 0 }}">
-    <div class="step" data-step="1">
-      <div class="step__bullet">1</div>
-      <div class="step__label">Sube tu CV</div>
-    </div>
-
-    <div class="stepper-connector" data-conn="1"></div>
-
-    <div class="step" data-step="2">
-      <div class="step__bullet">2</div>
-      <div class="step__label">Agrega el puesto</div>
-    </div>
-
-    <div class="stepper-connector" data-conn="2"></div>
-
-    <div class="step" data-step="3">
-      <div class="step__bullet">3</div>
-      <div class="step__label">Ver resultados</div>
-    </div>
-  </div>
-  
-  <!-- Separador -->
-  <div class="container stepper-divider"></div>
-
   <!-- Paneles izq. y der. -->
   <div class="container mt-3">
     <div class="row equal-panels g-4">
@@ -113,25 +86,39 @@
               </div>
 
               <div class="mb-2">
-                <label class="form-label">Sube tu CV (PDF o DOCX, máx. {{ max_mb or 2 }} MB):</label>
+                <label class="form-label label-with-badge">
+                  <span id="badge-step1" class="badge-circle">1</span>
+                  Sube tu CV (PDF o DOCX, máx. {{ max_mb or 2 }} MB):
+                </label>
+
+                <!-- input real (oculto) -->
                 <input id="file-input" name="cv" type="file" accept=".pdf,.docx" class="visually-hidden">
 
+                <!-- zona drag&drop -->
                 <div id="dropzone"
                     class="dropzone border border-2 rounded-3 p-4 text-center bg-white"
                     style="border-style:dashed; cursor:pointer;">
                   <div class="fw-semibold">Arrastra y suelta tu archivo aquí</div>
                   <div class="text-muted small">o haz clic para elegir desde tu computadora</div>
-                  <div id="file-name" class="small mt-2 text-secondary"></div>                  
+                  <div id="file-name" class="small mt-2 text-secondary"></div>
                 </div>
-                <button type="button" id="btn-clear-file" class="btn btn-sm btn-outline-secondary ms-2">
-                  <i class="bi bi-x-circle"></i> Limpiar archivo
-                </button>
+
+                 <div class="d-flex justify-content-between align-items-center mt-1">
+                  <button type="button" id="btn-clear-file" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-eraser"></i> Limpiar archivo
+                  </button>                  
+                </div>
 
                 <div class="form-text">Solo PDF/DOCX. Realizamos controles básicos de seguridad.</div>
               </div>
 
+              <!-- Job Description -->
               <div class="mb-3">
-                <label class="form-label">Pega la descripción del puesto:</label>
+                <label class="form-label label-with-badge">
+                  <span id="badge-step2" class="badge-circle">2</span>
+                  Pega la descripción del puesto:
+                </label>
+
                 <textarea id="jobdesc" name="jobdesc"
                           class="form-control"
                           rows="8"
@@ -147,9 +134,13 @@
                 </div>
               </div>
 
-              <button type="submit" class="btn btn-primary w-100">
-                <i class="bi bi-search"></i> Analizar
-              </button>
+              <!-- Botón + indicador ③ al costado -->
+              <div class="before-button">
+                <span id="badge-step3" class="badge-circle">3</span>
+                <button type="submit" class="btn btn-primary w-100">
+                  <i class="bi bi-search"></i> Analizar
+                </button>
+              </div>
             </form>
           {% endif %}
         </div>
@@ -190,7 +181,7 @@
                 <strong>Perfil profesional</strong> → Resumen profesional, Resumen, Objetivo(s), <em>Summary</em>, <em>Professional Summary</em>, <em>Profile</em>, <em>Objective</em>.
               </li>
               <li>
-                <strong>Experiencia laboral</strong> → Experiencia profesional, Experiencia, <em>Work Experience</em>, <em>Employment History</em>, <em>Career History</em>.
+                <strong>Experiencia laboral</strong> → Experiencia profesional, Experiencia, <em>Experience</em>, <em>Professional Experience</em>, <em>Work Experience</em>, <em>Employment History</em>, <em>Career History</em>.
               </li>
               <li>
                 <strong>Educación</strong> → Formación académica, <em>Education</em>, <em>Academic Background</em>.
@@ -350,7 +341,7 @@
           <div class="fw-semibold small">Secciones equivalentes aceptadas</div>
           <ul class="small mb-3">
             <li><strong>Perfil profesional</strong> → Resumen profesional, Resumen, Objetivo(s), <em>Summary</em>, <em>Professional Summary</em>, <em>Profile</em>, <em>Objective</em>.</li>
-            <li><strong>Experiencia laboral</strong> → Experiencia profesional, Experiencia, <em>Work Experience</em>, <em>Employment History</em>, <em>Career History</em>.</li>
+            <li><strong>Experiencia laboral</strong> → Experiencia profesional, Experiencia, <em>Experience</em>, <em>Professional Experience</em>, <em>Work Experience</em>, <em>Employment History</em>, <em>Career History</em>.</li>
             <li><strong>Educación</strong> → Formación académica, <em>Education</em>, <em>Academic Background</em>.</li>
             <li><strong>Habilidades</strong> → Competencias, <em>Skills</em>, <em>Hard/Soft/Technical Skills</em>.</li>
             <li><strong>Idiomas</strong> → <em>Languages</em>.</li>
@@ -498,23 +489,6 @@
       return true;
     }
 
-    function setFromDrop(file){
-      if (!validar(file)) return;
-      try {
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        fi.files = dt.files;
-        showOK(file);
-
-        // ✅ Notifica a quien escuche (stepper) que cambió el input
-        fi.dispatchEvent(new Event('change', { bubbles: true }));
-      } catch (e) {
-        console.warn('DataTransfer no disponible. Fallback:', e);
-        showOK(file);
-        alert('Tu navegador no permite asignar el archivo automáticamente. Haz clic para seleccionarlo.');
-      }
-    }
-
     // click en zona -> abre selector
     dz.addEventListener('click', function(e){ e.preventDefault(); fi.click(); });
 
@@ -558,9 +532,6 @@
       btnClearFile.addEventListener('click', function(){
         fi.value = '';
         clearVisual();
-
-        // Avísale al stepper que ya no hay archivo
-        fi.dispatchEvent(new Event('change', { bubbles: true }));
       });
     }
   }
@@ -597,9 +568,6 @@
       if (ta.value.length > 4000) ta.value = ta.value.slice(0, 4000);
       try { localStorage.setItem(KEY, ta.value); } catch(e) {}
       paintCount();
-
-      // Notifica al stepper que cambió la JD
-      ta.dispatchEvent(new Event('cvms-jd-change', { bubbles: true }));
     });
 
     // contador inicial
@@ -612,9 +580,6 @@
         paintCount();
         try { localStorage.removeItem(KEY); } catch(e) {}
         ta.focus();
-
-        // Notifica al stepper
-        ta.dispatchEvent(new Event('cvms-jd-change', { bubbles: true }));
       });
     }
 
@@ -625,70 +590,7 @@
         try { localStorage.setItem(KEY, ta.value); } catch(e) {}
       });
     }
-  }
-
-  /* ==========================================
-   * 5) STEPPER (estado y conectores)
-   * ========================================== */
-  function initStepper(){
-    const el = document.getElementById('analysis-stepper');
-    if(!el) return;
-
-    const hasFeedback = el.getAttribute('data-has-feedback') === '1';
-    const fi = document.getElementById('file-input');   // input file real
-    const ta = document.getElementById('jobdesc');      // textarea JD
-
-    const steps = Array.from(el.querySelectorAll('.step'));
-    const conns = Array.from(el.querySelectorAll('.stepper-connector'));
-
-    const hasFile = () => !!(fi && fi.files && fi.files.length > 0);
-    const hasDesc = () => !!(ta && ta.value && ta.value.trim().length > 0);
-
-    function markState(stepNum){
-      steps.forEach((s, i) => {
-        const idx = i + 1;
-        s.classList.toggle('step--active', idx === stepNum);
-        s.classList.toggle('step--done',   idx <  stepNum);
-      });
-      conns.forEach((c, i) => {
-        // conector 1 une step1->step2; conector 2 une step2->step3
-        c.classList.toggle('is-done',   i < stepNum - 1);
-        c.classList.toggle('is-active', i === stepNum - 2);
-      });
-    }
-
-    function computeStep(){
-      if (hasFeedback) return 3;     // ya hay resultados
-      if (hasFile() && hasDesc()) return 2; // listo para enviar
-      if (hasFile()) return 1;       // solo archivo
-      return 1;                      // inicio
-    }
-
-    function render(){ markState(computeStep()); }
-
-    // Eventos que cambian el estado
-    fi && fi.addEventListener('change', render);
-    // además del 'input', enganchamos un custom event que disparamos al limpiar JD
-    ta && ta.addEventListener('input', render);
-    ta && ta.addEventListener('cvms-jd-change', render);
-
-    // Si la vista ya trae feedback (POST exitoso), “reset” visual de los campos
-    if (hasFeedback) {
-      if (fi) fi.value = '';
-      const fn = document.getElementById('file-name');
-      if (fn) fn.textContent = '';
-      const dz = document.getElementById('dropzone');
-      if (dz) dz.classList.remove('border-success','bg-success-subtle');
-
-      if (ta) {
-        ta.value = '';
-        try { localStorage.removeItem('cvms_jobdesc'); } catch(e) {}
-      }
-      markState(3);
-    } else {
-      render();
-    }
-  }
+  }  
 
   /* ===========
    * BOOT
@@ -698,10 +600,50 @@
     initUploader();
     initTooltips();
     initJobDesc();
-    initStepper();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
+
+  /* ===========================
+   * 5) INICIALIZACIÓN DE BADGES
+   * =========================== */
+  (function initInlineBadges(){
+    const fi = document.getElementById('file-input');
+    const ta = document.getElementById('jobdesc');
+
+    const b1 = document.getElementById('badge-step1');
+    const b2 = document.getElementById('badge-step2');
+    const b3 = document.getElementById('badge-step3');
+
+    if (!fi || !ta || !b1 || !b2 || !b3) return;
+
+    const hasFile = () => !!(fi.files && fi.files.length > 0);
+    const hasJD   = () => !!(ta.value && ta.value.trim().length > 0);
+
+    function paint(){
+      // ① encendido si hay archivo
+      b1.classList.toggle('is-on', hasFile());
+
+      // ② encendido si hay JD
+      b2.classList.toggle('is-on', hasJD());
+
+      // ③ “listo” (verde pulsante) solo si ① y ② están OK
+      const ready = hasFile() && hasJD();
+      b3.classList.toggle('is-ready', ready);
+      // si no está listo, vuelve al estado inicial
+      if (!ready) b3.classList.remove('is-ready');
+    }
+
+    // eventos
+    fi.addEventListener('change', paint);
+    ta.addEventListener('input', paint);
+
+    // Integramos con tu JS de drag&drop/localStorage (si emite eventos custom)
+    ta.addEventListener('cvms-jd-change', paint);
+
+    // Primera pintura
+    paint();
+  })();
 
 })();
 </script>
