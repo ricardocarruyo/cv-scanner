@@ -1,25 +1,20 @@
-from flask import Blueprint, render_template, request, session, redirect, url_for, flash, make_response,send_from_directory, current_app
+from flask import Blueprint, render_template, request, session, redirect, url_for, flash, make_response, send_from_directory, current_app
+from datetime import datetime
+from sqlalchemy import asc
+
 from ..extensions import db
-from ..models import User, Execution
+from ..models import User, Execution, Comment
 from ..services.security import allowed_file, looks_suspicious
 from ..services.files import extract_pdf, extract_docx
-from ..services.ai import analizar_openai, analizar_gemini, extraer_score, sanitize_markdown, detectar_idioma, disclaimer_text
-import markdown
-from ..models import User, Execution, Comment   # <-- agrega Comment
-from sqlalchemy import asc                      # <-- agrega asc
-from datetime import datetime                   # <-- para timestamps
-from ..services.files import extract_pdf, extract_docx
+from ..services.ai import (
+    analizar_openai, analizar_gemini, extraer_score,
+    sanitize_markdown, detectar_idioma, disclaimer_text
+)
 from ..services.ats import evaluate_ats_compliance
-from docx import Document
-from io import BytesIO
-import fitz
-from docx import Document
-from io import BytesIO
-
 
 bp = Blueprint("main", __name__)
-
 MAX_MB = 2
+
 
 @bp.route("/favicon.ico")
 def favicon():
@@ -29,14 +24,16 @@ def favicon():
         mimetype="image/vnd.microsoft.icon"
     )
 
+
 @bp.route("/descargas/plantilla-ats")
 def descargar_plantilla_ats():
     return send_from_directory(
         current_app.static_folder,
         "docs/Plantilla_CV_ATS_STAR.docx",
         as_attachment=True,
-        download_name="Plantilla_CV_ATS_STAR.docx"  # nombre sugerido
+        download_name="Plantilla_CV_ATS_STAR.docx"
     )
+
 
 @bp.route("/", methods=["GET", "POST"])
 def index():
@@ -54,12 +51,12 @@ def index():
             jobdesc = (request.form.get("jobdesc") or "").strip()
             occ = (request.form.get("occupation") or "").strip()[:200]
 
-            # Nombre de archivo (puede venir vacío aunque 'file' exista)
+            # Nombre de archivo
             filename = ""
             if file and getattr(file, "filename", None):
                 filename = (file.filename or "").strip()
 
-            # Validaciones tempranas
+            # Validaciones
             if not filename:
                 flash("No se recibió ningún archivo. Selecciona un PDF o DOCX.")
                 return redirect(url_for("main.index"))
@@ -72,7 +69,6 @@ def index():
                 flash("Formato no permitido. Solo PDF o DOCX.")
                 return redirect(url_for("main.index"))
 
-            # Leer bytes
             data = file.read() or b""
             if not data:
                 flash("El archivo está vacío o no se pudo leer.")
@@ -85,76 +81,49 @@ def index():
             # Extensión segura
             ext = filename.rsplit(".", 1)[-1].lower()
 
-            # Extraer texto y metadatos + fuentes
-            docx_fonts = None
-            pdf_fonts = None
-
+            # Extraer texto y metadatos (incluye fuentes normalizadas en meta["fonts"])
             if ext == "pdf":
-                cv_text, pdf_meta = extract_pdf(data)   # <- tu función ya devuelve (texto, meta)
+                cv_text, pdf_meta = extract_pdf(data)   # -> (texto, {"pages","images","fonts"})
                 docx_meta = None
-
-                # EXTRA: detectar fuentes en PDF con PyMuPDF
-                try:                    
-                    doc = fitz.open(stream=data, filetype="pdf")
-                    fonts_set = set()
-                    for page in doc:
-                        d = page.get_text("dict")
-                        for block in d.get("blocks", []):
-                            for line in block.get("lines", []):
-                                for span in line.get("spans", []):
-                                    fname = (span.get("font") or "").strip().lower()
-                                    if fname:
-                                        fonts_set.add(fname)
-                    pdf_fonts = list(fonts_set) if fonts_set else None
-                except Exception:
-                    pdf_fonts = None
-
             else:  # docx
-                cv_text, docx_meta = extract_docx(data) # <- tu función ya devuelve (texto, meta)
+                cv_text, docx_meta = extract_docx(data) # -> (texto, {"tables","images","fonts"})
                 pdf_meta = None
 
-                # EXTRA: detectar fuentes en DOCX
-                try:                  
-                    d = Document(BytesIO(data))
-                    fonts_set = set()
-                    for p in d.paragraphs:
-                        for r in p.runs:
-                            fname = getattr(r.font, "name", None)
-                            if fname:
-                                fonts_set.add(fname.strip().lower())
-                    # si además quieres fuentes de tablas:
-                    for tbl in d.tables:
-                        for row in tbl.rows:
-                            for cell in row.cells:
-                                for p in cell.paragraphs:
-                                    for r in p.runs:
-                                        fname = getattr(r.font, "name", None)
-                                        if fname:
-                                            fonts_set.add(fname.strip().lower())
-                    docx_fonts = list(fonts_set) if fonts_set else None
-                except Exception:
-                    docx_fonts = None
-
-            # Asegurar string
             cv_text = cv_text or ""
 
-            
             if looks_suspicious(cv_text[:100000]):
                 flash("Detectamos contenido potencialmente peligroso en el archivo.")
-                return redirect(url_for("main.index"))            
+                return redirect(url_for("main.index"))
+
+            # Idioma del CV
+            res_lang = detectar_idioma(cv_text)  # 'en' / 'es'
+
+            # Fuentes para ATS (PDF o DOCX)
+            doc_fonts = None
+            if pdf_meta and isinstance(pdf_meta.get("fonts"), list):
+                doc_fonts = pdf_meta["fonts"]
+            elif docx_meta and isinstance(docx_meta.get("fonts"), list):
+                doc_fonts = docx_meta["fonts"]
+
+            # ATS score (estructura/lineamientos + tipografía)
+            score_ats, ats_details = evaluate_ats_compliance(
+                text=cv_text,
+                lang_code=res_lang,
+                ext=ext,
+                pdf_meta=pdf_meta,
+                docx_meta=docx_meta,
+                docx_fonts=doc_fonts
+            )
 
             # ========= LLMs =========
-            # Inicializamos por si fallan ambos
             model_vendor = None
             model_name   = None
             model_used   = None
             feedback_text = None
             oi_error = None
 
-            # Nombre para el prompt (humano y personal)
             nombre_persona = name or email
 
-            # Primero OpenAI
             fb_openai, oi_error = analizar_openai(cv_text, jobdesc, nombre=nombre_persona)
             if fb_openai:
                 feedback_text = fb_openai
@@ -162,7 +131,6 @@ def index():
                 model_name    = "gpt-4o"
                 model_used    = 1
             else:
-                # Fallback: Gemini
                 fb_gemini = analizar_gemini(cv_text, jobdesc, nombre=nombre_persona)
                 if fb_gemini:
                     feedback_text = fb_gemini
@@ -170,16 +138,13 @@ def index():
                     model_name    = "gemini-1.5-flash"
                     model_used    = 2
 
-            # Si no hubo feedback de ningún modelo, devolvemos mensaje y salimos
             if not feedback_text:
                 current_app.logger.error("No se pudo generar feedback. OpenAI err: %s", oi_error)
                 flash("No pudimos generar el análisis en este momento. Intenta nuevamente.")
                 return redirect(url_for("main.index"))
 
-            # Pasar a HTML seguro y extraer score JD
+            # Extraer score JD y limpiar encabezado numérico si viene como "NN%"
             score_jd = extraer_score(feedback_text) if feedback_text else None
-
-            # Si la primera línea es sólo "NN%", elimínala del cuerpo a mostrar
             if feedback_text:
                 lines = feedback_text.splitlines()
                 if lines:
@@ -190,30 +155,10 @@ def index():
 
             feedback_html = sanitize_markdown(feedback_text) if feedback_text else None
 
-            # Idioma y disclaimer para mostrar bajo el análisis
+            # Disclaimer según idioma (se pinta en plantilla)
             idioma_detectado = detectar_idioma(cv_text + " " + jobdesc)
             disclaimer = disclaimer_text(idioma_detectado)
 
-            # Idioma para ATS y compliance
-            res_lang = detectar_idioma(cv_text)  # 'en' / 'es'
-
-            # Pasamos fuentes detectadas: si es PDF vienen en pdf_meta['fonts'],
-            # si es DOCX podrías tenerlas en docx_meta['fonts'] o recopiladas aparte
-            fonts_for_ats = None
-            if ext == "pdf" and pdf_meta:
-                fonts_for_ats = pdf_meta.get("fonts")
-            elif docx_meta:
-                fonts_for_ats = docx_meta.get("fonts")
-
-            score_ats, ats_details = evaluate_ats_compliance(
-                text=cv_text,
-                lang_code=res_lang,
-                ext=ext,
-                pdf_meta=pdf_meta,
-                docx_meta=docx_meta,
-                docx_fonts=fonts_for_ats   # <— aquí
-            )
-            
             # Persistencia
             u = db.session.get(User, email)
             if not u:
@@ -224,8 +169,7 @@ def index():
             if occ: u.occupation = occ
             db.session.commit()
 
-            res_lang = detectar_idioma(cv_text)
-            jd_lang = detectar_idioma(jobdesc)            
+            jd_lang = detectar_idioma(jobdesc)
 
             ex = Execution(
                 email=email,
@@ -240,7 +184,7 @@ def index():
                 feedback_text=feedback_text,
                 ats_score=score_ats
             )
-            db.session.add(ex); 
+            db.session.add(ex)
             db.session.commit()
 
             # último análisis en users
@@ -256,9 +200,9 @@ def index():
                 email=email, name=name, picture=picture,
                 feedback=feedback_html,
                 disclaimer=disclaimer,
-                score_jd=score_jd,        
+                score_jd=score_jd,
                 score_ats=score_ats,
-                ats_details=ats_details,      
+                ats_details=ats_details,
                 model_used=model_used,
                 exec_id=ex.id,
                 max_mb=MAX_MB,
@@ -266,22 +210,26 @@ def index():
             ))
             resp.headers["Content-Type"] = "text/html; charset=utf-8"
             return resp
+
         except Exception:
             current_app.logger.exception("Error durante el análisis")
             flash("Ocurrió un error al procesar el análisis. Inténtalo nuevamente.", "danger")
             return redirect(url_for("main.index"))
 
-    return render_template("index.html",
-                           email=email, name=name, picture=picture,
-                           feedback=None,
-                           score_jd=None, score_ats=None,
-                           ats_details=None,
-                           model_used=None, exec_id=None,
-                           max_mb=MAX_MB, jobdesc=None)
+    # GET
+    return render_template(
+        "index.html",
+        email=email, name=name, picture=picture,
+        feedback=None,
+        score_jd=None, score_ats=None,
+        ats_details=None,
+        model_used=None, exec_id=None,
+        max_mb=MAX_MB, jobdesc=None
+    )
+
 
 @bp.route('/feedback', methods=['POST'])
 def leave_comment():
-    # exigir login
     if not session.get("user_email"):
         flash("Inicia sesión para enviar sugerencias.")
         return redirect(url_for("auth.login"))
