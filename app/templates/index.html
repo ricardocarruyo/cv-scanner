@@ -178,7 +178,7 @@
                           rows="8"
                           maxlength="4000"
                           required
-                          style="overflow-y:auto; overflow-x:hidden; white-space:pre-wrap; word-wrap:break-word; max-height:220px;">{{ jobdesc or '' }}</textarea>
+                          style="overflow-y:auto; overflow-x:hidden; white-space:pre-wrap; word-wrap:break-word; max-height:160px;">{{ jobdesc or '' }}</textarea>
 
                 <div class="d-flex justify-content-between align-items-center mt-1">
                   <button type="button" id="btn-clear-jobdesc" class="btn btn-sm btn-outline-secondary">
@@ -266,7 +266,7 @@
 
   <!-- Resultado del análisis -->
   {% if feedback %}
-    <div class="card mt-4 p-4 shadow-sm">
+    <div id="ai-analysis-section" class="card mt-4 p-4 shadow-sm">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h3 class="mb-0">Análisis de la IA</h3>
         <div class="d-flex gap-2">
@@ -371,9 +371,10 @@
       {% endif %}
 
       <!-- Análisis -->
-      <div class="mt-3">
-        {{ feedback|safe }}
+      <div class="mt-3">          
+          {{ feedback|safe }}
       </div>
+
 
       <!-- Lineamientas en el Reporte -->
       <hr class="my-4">
@@ -702,6 +703,28 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 
+})();
+
+// Scroll automático al análisis si venimos de un submit
+(function(){
+  // Solo si venimos de un análisis recién hecho
+  var el = document.getElementById('ai-analysis-section');
+  if (!el) return;
+
+  // Si el usuario prefiere menos animación:
+  var prefersReduced = false;
+  try {
+    prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch(e){}
+
+  // Compensar navbar fija (ajustá 80 si tu navbar es más alta/baja)
+  var NAV_OFFSET = 80;
+  var y = el.getBoundingClientRect().top + window.pageYOffset - NAV_OFFSET;
+
+  window.scrollTo({
+    top: y,
+    behavior: prefersReduced ? 'auto' : 'smooth'
+  });
 })();
 </script>
 {% endblock %}
