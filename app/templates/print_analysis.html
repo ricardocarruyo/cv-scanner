@@ -45,17 +45,8 @@
   </div>
 
     <!-- ======= AQUÍ PEGAMOS EL MISMO BLOQUE DE ANÁLISIS DE index.html ======= -->
-    {% include "_analysis_block.html" with
-        score_jd=score_jd,
-        score_ats=score_ats,
-        feedback=feedback_html,  {# o 'feedback' si así lo nombras #}
-        disclaimer=disclaimer,
-        ats_details=ats_details,
-        model_used=model_used,
-        exec_id=exec_id,
-        max_mb=max_mb,
-        print_mode=True
-    %}
+    {% set print_mode = True %}
+    {% include "_analysis_block.html" %}
 </div>
 
 <!-- JS para animar los donuts (mismo que usas en index, reducido) -->
