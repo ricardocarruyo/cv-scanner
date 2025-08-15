@@ -266,17 +266,20 @@
 
   <!-- Resultado del análisis -->
   {% if feedback %}
-    {% include "_analysis_block.html" with
-        score_jd=score_jd,
-        score_ats=score_ats,
-        feedback=feedback,
-        disclaimer=disclaimer,
-        ats_details=ats_details,
-        model_used=model_used,
-        exec_id=exec_id,
-        max_mb=max_mb,
-        print_mode=False
-    %}
+    {# solo marca que NO estamos en modo impresión #}
+    {% set print_mode = False %}
+      {# Ancla #}
+        <h3 id="ai-analysis" class="visually-hidden">Análisis</h3>
+
+        {% if just_analyzed %}
+        <script>
+          window.addEventListener('load', function(){
+            const el = document.getElementById('ai-analysis');
+            if(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); }
+          });
+        </script>
+      {% endif %}
+    {% include "_analysis_block.html" %}
   {% endif %}
 
   <!-- Sugerencias (solo con sesión) -->
@@ -569,7 +572,7 @@
 // Scroll automático al análisis si venimos de un submit
 (function(){
   // Solo si venimos de un análisis recién hecho
-  var el = document.getElementById('ai-analysis-section');
+  var el = document.getElementById('ai-analysis');
   if (!el) return;
 
   // Si el usuario prefiere menos animación:
