@@ -12,7 +12,7 @@ SECTION_SYNONYMS: Dict[str, List[str]] = {
     ],
     "experiencia laboral": [
         r"\bexperiencia laboral\b", r"\bexperiencia profesional\b",
-        r"\bexperiencia\b", r"\bprofessional experience\b"
+        r"\bexperiencia\b", r"\bprofessional experience\b", r"\bexperience\b",
         r"\bwork experience\b", r"\bemployment history\b", r"\bcareer history\b"
     ],
     "educación": [
