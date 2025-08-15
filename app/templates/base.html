@@ -43,26 +43,22 @@
     .navbar-brand:focus, .navbar-brand:focus-visible { outline: none !important; box-shadow: none !important; }
     .navbar-brand img { height: 24px; width: auto; display: inline-block; }
 
-    /* === STEPPER HORIZONTAL ================================================== */
+    /* === STEPPER HORIZONTAL ================================================== */ 
     .stepper{
       display:flex;
-      justify-content:center;   /* Centra horizontalmente */
+      justify-content:center;   /* centrado del grupo */
       align-items:center;
-      gap:2.25rem;
+      gap:1.25rem;              /* espacio entre bullet y conector */
       position:relative;
-      padding: .5rem 0;
+      padding:.5rem 0;
     }
     .step{
-      position:relative; display:flex; flex-direction:column; align-items:center; text-align:center;
+      position:relative;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      text-align:center;
     }
-    .step + .step::before{
-      content:""; position:absolute; left:-1.125rem; top:18px; /* centrado c/bullet 36px */
-      width:2.25rem; height:4px; border-radius:4px;
-      background:#e9ecef; transition:background-color .3s ease;
-    }    
-    .step--done + .step::before{ background:#0d6efd33; }
-    .step--active + .step::before{ background:#0d6efd66; }
-
     .step__bullet{
       width:36px; height:36px; border-radius:50%;
       display:grid; place-items:center; font-weight:700;
@@ -72,12 +68,35 @@
     }
     .step--active .step__bullet{
       border-color:#0d6efd; color:#0d6efd; background:#eef5ff;
-      box-shadow:0 0 0 6px rgba(13,110,253,.1);
+      box-shadow:0 0 0 6px rgba(13,110,253,.10);
     }
     .step--done .step__bullet{
       background:#0d6efd; color:#fff; border-color:#0d6efd;
     }
     .step__label{ margin-top:.35rem; font-size:.9rem; color:#495057; }
+
+    /* Conectores (líneas entre pasos): siempre centrados verticalmente */
+    .stepper-connector{
+      height:4px;
+      width:64px;                  /* largo de la línea; ajustable */
+      border-radius:4px;
+      background:#e9ecef;
+      align-self:center;
+      transition:background-color .25s ease, opacity .25s ease;
+      opacity:.9;
+    }
+    .stepper-connector.is-done{   /* tramo pasado */
+      background:#0d6efd66;
+    }
+    .stepper-connector.is-active{ /* tramo actual */
+      background:#0d6efd;
+    }
+
+    /* Responsive: compactar algo en móviles */
+    @media (max-width: 576px){
+      .stepper{ gap:.75rem; }
+      .stepper-connector{ width:48px; }
+    }
 
     /* Línea gris finita bajo el stepper (opcional) */
     .stepper-divider{ border-top: 1px solid #e9ecef; margin-top: .25rem; }
@@ -90,15 +109,7 @@
     .dropzone.ok{
       border-color: #198754 !important;
       background-color: #e9f7ef;
-    }
-    
-    @media (max-width: 576px){
-      .stepper{
-        gap: 1.5rem;
-      }
-    }
-
-
+    }    
   </style>
 
 
