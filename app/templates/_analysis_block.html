@@ -1,0 +1,159 @@
+{# templates/_analysis_block.html #}
+{# 
+  Variables esperadas:
+  - score_jd (int 0–100)
+  - score_ats (int 0–100)
+  - feedback  (HTML ya sanitizado)  ← usa la misma variable que pasas a index
+  - disclaimer (str)                ← opcional
+  - ats_details (obj)               ← opcional; si no está, se oculta el checklist
+  - model_used (1=openai, 2=gemini) ← opcional; solo UI
+  - exec_id (int)                   ← opcional; solo para botón Descargar
+  - max_mb (int)                    ← opcional; para línea de lineamientos
+  - print_mode (bool)               ← si True: oculta botones/acciones
+#}
+
+<div class="card p-4 shadow-sm">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h3 id="ai-analysis-section" class="mb-0">Análisis de la IA</h3>
+
+    {% if not print_mode %}
+      <div class="d-flex gap-2">
+        {% if model_used == 1 %}
+          <span class="badge text-bg-primary model-badge"><i class="bi bi-cpu"></i> Modelo 1: OpenAI</span>
+        {% elif model_used == 2 %}
+          <span class="badge text-bg-success model-badge"><i class="bi bi-stars"></i> Modelo 2: Gemini</span>
+        {% endif %}
+        {% if exec_id %}
+          <a class="btn btn-sm btn-outline-secondary" target="_blank"
+             href="{{ url_for('history.print_view', exec_id=exec_id) }}">
+            <i class="bi bi-printer"></i> Descargar / Imprimir
+          </a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Donas -->
+  <div class="row g-3 align-items-center analysis-meters">
+    <div class="col-12 col-lg-6">
+      <div class="donut-host">
+        <div class="donut" data-score="{{ score_jd|default(0, true)|int }}">
+          <div class="donut-wrap">
+            <svg viewBox="-2 -2 40 40" class="donut-svg" aria-label="Coincidencia con Job Description" overflow="visible">
+              <circle class="donut-track"     cx="18" cy="18" r="15" pathLength="100"></circle>
+              <circle class="donut-indicator" cx="18" cy="18" r="15" pathLength="100"></circle>
+            </svg>
+            <div class="donut-label">{{ score_jd|default(0, true)|int }}%</div>
+          </div>
+          <div class="small text-muted mt-2 text-center">Coincidencia con Job Description</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="donut-host">
+        <div class="donut" data-score="{{ score_ats|default(0, true)|int }}">
+          <div class="donut-wrap">
+            <svg viewBox="-2 -2 40 40" class="donut-svg" aria-label="Coincidencia con Plantilla CV ATS" overflow="visible">
+              <circle class="donut-track"     cx="18" cy="18" r="15" pathLength="100"></circle>
+              <circle class="donut-indicator" cx="18" cy="18" r="15" pathLength="100"></circle>
+            </svg>
+            <div class="donut-label">{{ score_ats|default(0, true)|int }}%</div>
+          </div>
+          <div class="small text-muted mt-2 text-center">Coincidencia con Plantilla CV ATS</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if disclaimer %}
+    <div class="alert alert-info mt-3" role="alert">{{ disclaimer }}</div>
+  {% endif %}
+
+  {% if ats_details %}
+    <div class="card mt-3 mb-2 p-3">
+      <h6 class="fw-bold mb-3">Checklist ATS detectado</h6>
+      <div class="row gy-2 gx-4">
+        <!-- Imágenes -->
+        <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
+          {% set ok = not ats_details.has_images %}
+          <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
+          <span>Imágenes en el CV: <strong>{{ 'No' if ok else 'Sí' }}</strong></span>
+        </div>
+        <!-- Tablas / Columnas -->
+        <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
+          {% set ok = not ats_details.has_tables_or_columns %}
+          <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
+          <span>Tablas o columnas: <strong>{{ 'No' if ok else 'Sí' }}</strong></span>
+        </div>
+        <!-- Tipografía segura -->
+        <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
+          {% if ats_details.safe_typography is none %}
+            <i class="bi bi-dash-circle-fill text-secondary me-2"></i>
+            <span>Tipografía segura: <strong>Indeterminado</strong></span>
+          {% else %}
+            {% set ok = ats_details.safe_typography %}
+            <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
+            <span>Tipografía segura: <strong>{{ 'Sí' if ok else 'No' }}</strong></span>
+          {% endif %}
+        </div>
+
+        <!-- Secciones -->
+        {% set present = ats_details.sections_present or [] %}
+        {% for label in ['perfil profesional','experiencia laboral','educación','habilidades','idiomas'] %}
+          <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
+            {% set ok = label in present %}
+            <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
+            <span>{{ label|capitalize }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Feedback -->
+  <div class="mt-3">
+    {{ feedback|safe }}
+  </div>
+
+  <!-- Lineamientos -->
+  <hr class="my-4">
+  <h5 class="mb-2">Lineamientos y equivalencias ATS</h5>
+  <ul class="small mb-2">
+    <li>Formato: <strong>PDF o DOCX</strong>. Idioma: <strong>Español o Inglés</strong>. Texto legible (no escaneado). Máx. {{ (max_mb or 2) }} MB.</li>
+    <li>Evita imágenes, tablas y columnas; usa encabezados simples y bullets estándar.</li>
+    <li>Tipografías seguras: Arial, Calibri, Helvetica, Verdana.</li>
+    {% if not print_mode %}
+      <li>
+        <a class="link-primary" href="{{ url_for('static', filename='docs/Plantilla_CV_ATS_STAR.docx') }}" download>
+          Descargar Plantilla CV ATS
+        </a>
+      </li>
+    {% else %}
+      <li>Descarga la plantilla desde el sitio: Plantilla CV ATS.</li>
+    {% endif %}
+  </ul>
+
+  <div class="row">
+    <div class="col-md-6">
+      <div class="fw-semibold small">Secciones equivalentes aceptadas</div>
+      <ul class="small mb-3">
+        <li><strong>Perfil profesional</strong> → Resumen profesional, Resumen, Objetivo(s), <em>Summary</em>, <em>Professional Summary</em>, <em>Profile</em>, <em>Objective</em>.</li>
+        <li><strong>Experiencia laboral</strong> → Experiencia profesional, Experiencia, <em>Work Experience</em>, <em>Employment History</em>, <em>Career History</em>.</li>
+        <li><strong>Educación</strong> → Formación académica, <em>Education</em>, <em>Academic Background</em>.</li>
+        <li><strong>Habilidades</strong> → Competencias, <em>Skills</em>, <em>Hard/Soft/Technical Skills</em>.</li>
+        <li><strong>Idiomas</strong> → <em>Languages</em>.</li>
+      </ul>
+    </div>
+    <div class="col-md-6">
+      <div class="fw-semibold small">Formato STAR para tu experiencia</div>
+      <p class="small mb-1">Redacta cada logro con STAR para mejorar la lectura por ATS y por reclutadores:</p>
+      <ul class="small mb-0">
+        <li><strong>S</strong>ituación: contexto o problema.</li>
+        <li><strong>T</strong>area: objetivo o responsabilidad.</li>
+        <li><strong>A</strong>cción: qué hiciste específicamente.</li>
+        <li><strong>R</strong>esultado: impacto cuantificable (% mejora, tiempos, costos, calidad).</li>
+      </ul>
+    </div>
+  </div>
+</div>

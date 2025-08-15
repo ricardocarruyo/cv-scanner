@@ -7,7 +7,7 @@ from ..models import Execution, Comment
 from ..services.pdf import render_analysis_pdf
 from ..models import Execution, Comment, User
 
-bp = Blueprint("history", __name__)
+bp = Blueprint("history", __name__, url_prefix="/history")
 
 def _require_login():
     if not session.get("user_email"):
@@ -130,3 +130,26 @@ def download_pdf(exec_id):
         download_name=f"analisis_{ex.id}.pdf",
         mimetype="application/pdf"
     )
+
+@bp.route("/print/<int:exec_id>")
+def print_view(exec_id):
+    ex = db.session.get(Execution, exec_id)
+    if not ex:
+        abort(404)
+
+    # Lo que guardaste cuando analizaste
+    context = {
+        "exec_id": ex.id,
+        "created_at": ex.created_at,       # para fecha en el encabezado
+        "email": ex.email,
+        "filename": ex.uploaded_filename,
+        "score_jd": ex.score,              # si guardas "score" como JD
+        "score_ats": ex.ats_score,
+        # feedback_text lo guardaste en texto plano markdown; en index lo sanitizas a HTML
+        # aquí lo renderizamos igual que en index: pasa feedback_html desde index si lo prefieres.
+        "feedback_html": ex.feedback_text, # en la plantilla lo marcarás |safe si ya está sanitizado
+        # Para que aparezca el “Checklist ATS detectado”, te llega desde index como ats_details;
+        # si lo quieres persistir, agrega una columna JSON en Execution. Si aún no, puedes no pintarlo.
+        # Aquí asumo que lo pasas a la plantilla por el render desde index (ver paso 2).
+    }
+    return render_template("print_analysis.html", **context)
