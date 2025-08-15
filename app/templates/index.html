@@ -59,6 +59,43 @@
     word-wrap: break-word;
   }  
 
+  /* Indicadores circulares 1–2–3 */
+  .badge-circle{
+    --on-bg: #0d6efd;       /* azul encendido */
+    --off-bg:#e9ecef;       /* gris apagado  */
+    --on-fg:#fff;
+    --off-fg:#6c757d;
+
+    width: 32px; height: 32px; border-radius: 50%;
+    display: inline-grid; place-items: center;
+    font-weight: 700; font-size: .95rem;
+    background: var(--off-bg); color: var(--off-fg);
+    border: 2px solid #dee2e6;
+    transition: background .2s ease, color .2s ease, box-shadow .2s ease;
+    box-shadow: 0 0 0 0 rgba(13,110,253,0);
+    line-height: 1;
+  }
+  .badge-circle.is-on{
+    background: var(--on-bg); color: var(--on-fg); border-color: var(--on-bg);
+    box-shadow: 0 0 0 4px rgba(13,110,253,.15);
+  }
+
+  /* Parpadeo suave cuando ③ está listo */
+  @keyframes pulse {
+    0%   { transform: scale(1);   box-shadow: 0 0 0 0 rgba(13,110,253,.35); }
+    70%  { transform: scale(1.06); box-shadow: 0 0 0 10px rgba(13,110,253,0); }
+    100% { transform: scale(1);   box-shadow: 0 0 0 0 rgba(13,110,253,0); }
+  }
+  .badge-circle.is-ready{
+    background:#28a745; border-color:#28a745; /* verde “listo” */
+    color:#fff;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+
+  /* Pequeños ajustes de alineación en labels/botón */
+  .label-with-badge{ display:flex; align-items:center; gap:.5rem; }
+  .before-button{ display:flex; align-items:center; gap:.5rem; }
+
 </style>
 {% endblock %}
 
