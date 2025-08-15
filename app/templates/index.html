@@ -102,7 +102,7 @@
 {% block content %}
   <!-- Paneles izq. y der. -->
   <div class="container mt-3">
-    <div class="row equal-panels g-4">
+    <div class="row g-4 mb-4 equal-panels">
       <!-- IZQUIERDA: FORM -->
       <div class="col-12 col-lg-6">
         <div class="card p-4 shadow-sm h-100">
@@ -267,19 +267,30 @@
   <!-- Resultado del análisis -->
   {% if feedback %}
     {# solo marca que NO estamos en modo impresión #}
-    {% set print_mode = False %}
-      {# Ancla #}
-        <h3 id="ai-analysis" class="visually-hidden">Análisis</h3>
+    {# Ancla #}
+    <h3 id="ai-analysis" class="visually-hidden">Análisis</h3>
+    
+    {% if just_analyzed %}
+      <script>
+        window.addEventListener('load', function(){
+          const el = document.getElementById('ai-analysis');
+          if(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); }
+        });
+      </script>
+    {% endif %}
+    </div> 
+    
+    <!-- Analisis -->
+    {% if feedback %}
+      <div class="row g-4">
+        <div class="col-12">
+          {# si usas el partial #}
+          {% set print_mode = False %}
+          {% include "_analysis_block.html" %}
+        </div>
+      </div>
+    {% endif %}
 
-        {% if just_analyzed %}
-        <script>
-          window.addEventListener('load', function(){
-            const el = document.getElementById('ai-analysis');
-            if(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); }
-          });
-        </script>
-      {% endif %}
-    {% include "_analysis_block.html" %}
   {% endif %}
 
   <!-- Sugerencias (solo con sesión) -->
