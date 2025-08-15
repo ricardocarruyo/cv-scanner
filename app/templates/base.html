@@ -46,19 +46,20 @@
     /* === STEPPER HORIZONTAL ================================================== */ 
     .stepper{
       display:flex;
-      justify-content:center;   /* centrado del grupo */
+      justify-content:center;
       align-items:center;
-      gap:1.25rem;              /* espacio entre bullet y conector */
+      gap:1.25rem;                 /* espacio “visual” entre bloques */
       position:relative;
       padding:.5rem 0;
     }
+
     .step{
-      position:relative;
       display:flex;
       flex-direction:column;
       align-items:center;
       text-align:center;
     }
+
     .step__bullet{
       width:36px; height:36px; border-radius:50%;
       display:grid; place-items:center; font-weight:700;
@@ -75,28 +76,27 @@
     }
     .step__label{ margin-top:.35rem; font-size:.9rem; color:#495057; }
 
-    /* Conectores (líneas entre pasos): siempre centrados verticalmente */
+    /* Conectores: ancho fijo + solape para “tocar” los círculos */
     .stepper-connector{
       height:4px;
-      width:64px;                  /* largo de la línea; ajustable */
+      width:80px;                    /* largo del tramo */
       border-radius:4px;
       background:#e9ecef;
       align-self:center;
       transition:background-color .25s ease, opacity .25s ease;
-      opacity:.9;
-    }
-    .stepper-connector.is-done{   /* tramo pasado */
-      background:#0d6efd66;
-    }
-    .stepper-connector.is-active{ /* tramo actual */
-      background:#0d6efd;
-    }
+      opacity:.95;
 
-    /* Responsive: compactar algo en móviles */
+      /* solapa 18px en cada lado (la mitad del radio del bullet) */
+      margin:0 -18px;
+    }
+    .stepper-connector.is-done{   background:#0d6efd66; }
+    .stepper-connector.is-active{ background:#0d6efd; }
+
     @media (max-width: 576px){
       .stepper{ gap:.75rem; }
-      .stepper-connector{ width:48px; }
-    }
+      .stepper-connector{ width:56px; margin:0 -16px; }
+    } 
+    /* FIN STEPPER HORIZONTAL ================================================== */
 
     /* Línea gris finita bajo el stepper (opcional) */
     .stepper-divider{ border-top: 1px solid #e9ecef; margin-top: .25rem; }
