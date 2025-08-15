@@ -63,24 +63,34 @@
 {% endblock %}
 
 {% block content %}
-  <!-- STEPPER HORIZONTAL -->
-  <div id="analysis-stepper" class="container stepper"
+  <!-- STEPPER: Progreso del análisis -->
+  <div id="analysis-stepper"
+      class="stepper my-3"
       data-has-feedback="{{ 1 if feedback else 0 }}">
     <div class="step" data-step="1">
       <div class="step__bullet">1</div>
       <div class="step__label">Sube tu CV</div>
     </div>
+
+    <div class="stepper-connector" data-conn="1"></div>
+
     <div class="step" data-step="2">
       <div class="step__bullet">2</div>
       <div class="step__label">Agrega el puesto</div>
     </div>
+
+    <div class="stepper-connector" data-conn="2"></div>
+
     <div class="step" data-step="3">
       <div class="step__bullet">3</div>
       <div class="step__label">Ver resultados</div>
     </div>
   </div>
+  
+  <!-- Separador -->
   <div class="container stepper-divider"></div>
 
+  <!-- Paneles izq. y der. -->
   <div class="container mt-3">
     <div class="row equal-panels g-4">
       <!-- IZQUIERDA: FORM -->
@@ -112,6 +122,11 @@
                   <div class="fw-semibold">Arrastra y suelta tu archivo aquí</div>
                   <div class="text-muted small">o haz clic para elegir desde tu computadora</div>
                   <div id="file-name" class="small mt-2 text-secondary"></div>
+
+                  <button type="button" id="btn-clear-file" class="btn btn-sm btn-outline-secondary ms-2">
+                    <i class="bi bi-x-circle"></i> Limpiar archivo
+                  </button>
+
                 </div>
 
                 <div class="form-text">Solo PDF/DOCX. Realizamos controles básicos de seguridad.</div>
@@ -603,123 +618,101 @@
     })();
   </script>
   <script>
-    (function(){
-      /* ---------- utilidades visuales del dropzone ---------- */
-      const dz = document.getElementById('dropzone');
-      const fi = document.getElementById('file-input');
+  (function(){
+    const el = document.getElementById('analysis-stepper');
+    if(!el) return;
+
+    const hasFeedback = el.getAttribute('data-has-feedback') === '1';
+    const fi = document.getElementById('file-input');   // input file real
+    const ta = document.getElementById('jobdesc');      // textarea JD
+    const btnClear = document.getElementById('btn-clear-jobdesc');
+
+    const steps = Array.from(el.querySelectorAll('.step'));
+    const conns = Array.from(el.querySelectorAll('.stepper-connector'));
+
+    function markState(stepNum){
+      // stepNum: 1, 2 o 3
+      steps.forEach((s, i) => {
+        const idx = i + 1;
+        s.classList.toggle('step--active', idx === stepNum);
+        s.classList.toggle('step--done',   idx <  stepNum);
+      });
+      conns.forEach((c, i) => {
+        // conector 1 une step1->step2; conector 2 une step2->step3
+        c.classList.toggle('is-done',   i < stepNum - 1);
+        c.classList.toggle('is-active', i === stepNum - 2);
+      });
+    }
+
+    function hasFile(){
+      return !!(fi && fi.files && fi.files.length > 0);
+    }
+    function hasDesc(){
+      return !!(ta && ta.value && ta.value.trim().length > 0);
+    }
+
+    const btnClearFile = document.getElementById('btn-clear-file');
+    if (btnClearFile) {
+      btnClearFile.addEventListener('click', function(){
+        if (fi) fi.value = '';
+        const fn = document.getElementById('file-name');
+        if (fn) fn.textContent = '';
+        const dz = document.getElementById('dropzone');
+        if (dz) dz.classList.remove('border-success','bg-success-subtle');
+        render();
+      });
+    }
+
+    function computeStep(){
+      // 3 => ya hay feedback renderizado
+      if (hasFeedback) return 3;
+
+      // 2 => ambos presentes (listo para enviar)
+      if (hasFile() && hasDesc()) return 2;
+
+      // 1 => hay archivo o estamos empezando
+      if (hasFile()) return 1;
+
+      // 1 => por defecto
+      return 1;
+    }
+
+    function render(){ markState(computeStep()); }
+
+    // Eventos que cambian el estado
+    if (fi) fi.addEventListener('change', render);
+    if (ta) ta.addEventListener('input', render);
+
+    // Botón "Limpiar" borra JD y re-pinta el stepper
+    if (btnClear) {
+      btnClear.addEventListener('click', function(){
+        if (ta) ta.value = '';
+        try { localStorage.removeItem('cvms_jobdesc'); } catch(e) {}
+        render();
+        ta && ta.focus();
+      });
+    }
+
+    // Si la vista ya trae feedback (POST exitoso), “reset” visual de los campos
+    if (hasFeedback) {
+      // limpiamos visualmente (no bloquea el historial/back del browser)
+      if (fi) fi.value = '';
       const fn = document.getElementById('file-name');
-      const ta = document.getElementById('jobdesc');
-      const KEY = 'cvms_jobdesc';
+      if (fn) fn.textContent = '';
+      const dz = document.getElementById('dropzone');
+      if (dz) dz.classList.remove('border-success','bg-success-subtle');
 
-      function showName(file){
-        if(!fn || !dz) return;
-        if(!file){
-          fn.textContent = '';
-          dz.classList.remove('ok');
-          return;
-        }
-        const kb = Math.round((file.size||0)/1024);
-        fn.innerHTML = '<i class="bi bi-check-circle-fill me-1 text-success"></i> '
-                      + 'Archivo: '+ file.name + ' (' + kb + ' KB)';
-        dz.classList.add('ok');
+      if (ta) {
+        ta.value = '';
+        try { localStorage.removeItem('cvms_jobdesc'); } catch(e) {}
       }
 
-      function validarExt(file){
-        return /\.(pdf|docx)$/i.test(file.name);
-      }
-
-      // abrir selector al click
-      if(dz){
-        dz.addEventListener('click', ()=> fi && fi.click());
-        dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.classList.add('bg-light'); });
-        dz.addEventListener('dragleave', ()=> dz.classList.remove('bg-light'));
-        dz.addEventListener('drop', e=>{
-          e.preventDefault(); dz.classList.remove('bg-light');
-          const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-          if(!f || !validarExt(f)) return alert('Formato no permitido. Solo PDF o DOCX.');
-          try{
-            const dt = new DataTransfer(); dt.items.add(f); fi.files = dt.files;
-          }catch(_){}
-          showName(f); renderStepper();
-        });
-      }
-
-      if(fi){
-        fi.addEventListener('change', e=>{
-          const f = e.target.files && e.target.files[0];
-          if(!f){ showName(null); renderStepper(); return; }
-          if(!validarExt(f)){ fi.value=''; showName(null); alert('Solo PDF o DOCX.'); return; }
-          showName(f); renderStepper();
-        });
-      }
-
-      // Persistencia de la descripción
-      if(ta){
-        // Inicializa desde storage si el server no trajo contenido
-        if(!ta.value.trim()){
-          const saved = localStorage.getItem(KEY);
-          if(saved) ta.value = saved;
-        }
-        ta.addEventListener('input', ()=>{
-          try{ localStorage.setItem(KEY, ta.value); }catch(_){}
-          updateCharCount();
-          renderStepper();
-        });
-        document.getElementById('btn-clear-jobdesc')?.addEventListener('click', ()=>{
-          ta.value = ''; updateCharCount(); renderStepper();
-          try{ localStorage.removeItem(KEY); }catch(_){}
-          ta.focus();
-        });
-      }
-
-      function updateCharCount(){
-        const cc = document.getElementById('char-count');
-        if(cc && ta) cc.textContent = (ta.value.length) + "/4000";
-      }
-      updateCharCount();
-
-      /* ---------- STEPPER ---------- */
-      const stepper = document.getElementById('analysis-stepper');
-      const hasFeedback = stepper?.getAttribute('data-has-feedback') === '1';
-      const steps = stepper ? Array.from(stepper.querySelectorAll('.step')) : [];
-
-      function setState(n){ // pinta estados: done/active
-        steps.forEach((s,i)=>{
-          s.classList.remove('step--done','step--active');
-          const idx = i+1;
-          if(idx < n) s.classList.add('step--done');
-          else if(idx === n) s.classList.add('step--active');
-        });
-      }
-
-      function renderStepper(){
-        const haveFile = !!(fi && fi.files && fi.files.length);
-        const haveDesc = !!(ta && ta.value.trim().length);
-
-        // 1: archivo, 2: JD, 3: resultado
-        if(hasFeedback){
-          setState(3);
-          return;
-        }
-        if(haveFile && haveDesc){ setState(2); return; }
-        if(haveFile){ setState(1); return; }
-        setState(1); // paso 1 por defecto
-      }
-
-      renderStepper();
-
-      /* ---------- RESET tras análisis: limpiar inputs y stepper ---------- */
-      if(hasFeedback){
-        // limpia visual del archivo y textarea
-        showName(null);
-        if(fi) fi.value = '';
-        if(ta){ ta.value = ''; updateCharCount(); try{ localStorage.removeItem(KEY); }catch(_){ } }
-
-        // y deja el stepper "listo para un nuevo análisis" (paso 1 activo)
-        // (esperamos un frame para que primero se vea el estado 3 al cargar)
-        requestAnimationFrame(()=> setState(1));
-      }
-    })();
+      // pintamos el paso 3 como activo
+      markState(3);
+    } else {
+      render();
+    }
+  })();
   </script>
 
 {% endblock %}
