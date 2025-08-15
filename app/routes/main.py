@@ -206,7 +206,8 @@ def index():
                 model_used=model_used,
                 exec_id=ex.id,
                 max_mb=MAX_MB,
-                jobdesc=jobdesc
+                jobdesc=jobdesc,
+                just_analyzed=True
             ))
             resp.headers["Content-Type"] = "text/html; charset=utf-8"
             return resp
@@ -224,7 +225,8 @@ def index():
         score_jd=None, score_ats=None,
         ats_details=None,
         model_used=None, exec_id=None,
-        max_mb=MAX_MB, jobdesc=None
+        max_mb=MAX_MB, jobdesc=None,
+        just_analyzed=False
     )
 
 
