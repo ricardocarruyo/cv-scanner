@@ -1,6 +1,6 @@
 Flask
 Flask-SQLAlchemy
-pymupdf
+pymupdf==1.26.3
 openai>=1.40.0
 google-generativeai
 markdown
