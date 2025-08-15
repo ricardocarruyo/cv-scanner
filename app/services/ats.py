@@ -1,9 +1,8 @@
 # app/services/ats.py
 import re
 from collections import Counter
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Iterable
 
-# Diccionario de secciones y SINÓNIMOS (ES/EN) – ¡NO CAMBIAR CLAVES!
 SECTION_SYNONYMS: Dict[str, List[str]] = {
     "perfil profesional": [
         r"\bperfil profesional\b", r"\bresumen profesional\b", r"\bresumen\b",
@@ -24,27 +23,76 @@ SECTION_SYNONYMS: Dict[str, List[str]] = {
         r"\bskills\b", r"\btechnical skills\b"
     ],
     "idiomas": [
-        r"\bidiomas\b",r"\bidioma\b", r"\blengu(as|as)\b",
+        r"\bidiomas\b", r"\bidioma\b", r"\blengu(as|as)\b",
         r"\blanguages\b"
     ],
 }
 
-# Fuentes “seguras” (ATS-friendly) / “no recomendadas”
-GOOD_FONTS = {"arial", "helvetica", "calibri", "verdana", "roboto", "georgia", "times new roman", "inter", "source sans pro"}
-BAD_FONTS  = {"comic sans", "papyrus", "monotype corsiva", "brush script", "impact"}
+GOOD_FONTS = {
+    "arial", "helvetica", "calibri", "verdana",
+    "roboto", "georgia", "times new roman",
+    "inter", "source sans pro"
+}
+BAD_FONTS = {"comic sans", "papyrus", "monotype corsiva", "brush script", "impact"}
 
 def estimate_pages_from_words(word_count: int) -> int:
-    # 500–650 palabras/página aprox
     return max(1, round(word_count / 600))
 
 def _detect_sections(text_lower: str):
-    """Devuelve listas: presentes, faltantes y el conteo."""
-    present = []
-    missing = []
+    present, missing = [], []
     for canonical, patterns in SECTION_SYNONYMS.items():
         hit = any(re.search(p, text_lower, flags=re.IGNORECASE) for p in patterns)
         (present if hit else missing).append(canonical)
     return present, missing, len(present)
+
+# ---- Normalización de nombres de fuentes ----
+# Mapea variantes como "Arial-BoldMT", "ArialMT", "ARIAL", "TimesNewRomanPS-BoldItalicMT", etc.
+FONT_ALIASES = {
+    "timesnewromanps": "times new roman",
+    "timesnewroman": "times new roman",
+    "arialmt": "arial",
+    "arial-boldmt": "arial",
+    "arial-bold": "arial",
+    "arial-italic": "arial",
+    "helveticaneue": "helvetica",
+    "symbolmt": "symbol"  # no es "segura", pero la identificamos
+}
+
+def normalize_font_name(name: str) -> str:
+    if not name:
+        return ""
+    n = name.strip().lower()
+
+    # sacar espacios y guiones para detectar alias de familia
+    raw = re.sub(r"[\s_]+", "", n)
+
+    # quitar sufijos comunes de Adobe/Monotype
+    raw = re.sub(r"(ps)?-?(bold|italic|oblique|bolditalic|boldoblique|regular|mt)$", "", raw)
+
+    # quitar "ps-" en el medio y otros sufijos conocidos
+    raw = raw.replace("psmt", "").replace("ps", "")
+
+    # aplicar alias conocidos
+    if raw in FONT_ALIASES:
+        return FONT_ALIASES[raw]
+
+    # si viene con guiones, quédate con el primer trozo (p.ej. arial-boldmt -> arial)
+    base = n.split("-")[0]
+
+    # limpieza final
+    base = base.replace("mt", "").strip()
+    base = re.sub(r"\s+", " ", base)
+
+    # mapear algunos compactos
+    if base in ("timesnewroman", "timesnewromanps"):
+        base = "times new roman"
+
+    return base
+
+def normalize_fonts(fonts: Optional[Iterable[str]]) -> List[str]:
+    if not fonts:
+        return []
+    return sorted(set(f for f in (normalize_font_name(x) for x in fonts) if f))
 
 def evaluate_ats_compliance(
     text: str,
@@ -52,29 +100,17 @@ def evaluate_ats_compliance(
     ext: str,
     pdf_meta=None,
     docx_meta=None,
-    docx_fonts=None  # <- usamos este nombre para ambos casos (docx o pdf)
+    docx_fonts=None  # aquí pasan tanto fuentes de DOCX como de PDF (via main)
 ):
-    """
-    Devuelve (score_ats, details) donde details incluye:
-      - sections_present / sections_missing / sections_found
-      - lang_ok
-      - pages
-      - images / tables
-      - no_images / no_tables
-      - fonts_bonus
-      - has_images (bool)
-      - has_tables_or_columns (bool)
-      - safe_typography: True/False/None (None = indeterminado, típico en PDF)
-    """
     t = (text or "")
     t_lc = t.lower()
     words = re.findall(r"\b\w+\b", t_lc)
     wcount = len(words)
 
-    # 1) Secciones clave (con sinónimos)
+    # 1) Secciones
     sections_present, sections_missing, found_sections = _detect_sections(t_lc)
 
-    # 2) Idioma: ES o EN válidos
+    # 2) Idioma
     lang_ok = (lang_code in ("es", "en"))
 
     # 3) Páginas
@@ -84,83 +120,69 @@ def evaluate_ats_compliance(
         pages = estimate_pages_from_words(wcount)
     pages_ok = pages <= 2
 
-    # 4) Imágenes / tablas/columnas
+    # 4) Imágenes / Tablas
     images = 0
     tables = 0
     if pdf_meta:
         images += int(pdf_meta.get("images", 0))
+        # si el extractor de PDF detectara tablas/columnas se podrían sumar aquí
     if docx_meta:
         images += int(docx_meta.get("images", 0))
         tables += int(docx_meta.get("tables", 0))
+
     no_images = (images == 0)
     no_tables = (tables == 0)
 
     has_images = images > 0
     has_tables_or_columns = tables > 0
 
-    # Tipografía segura
-    safe_typography = None
-    fonts_list = None
+    # 5) Tipografías (PDF o DOCX)
+    detected_fonts = None
+
+    # preferimos el parámetro explícito docx_fonts (usa ambos casos: docx o pdf)
     if isinstance(docx_fonts, (list, tuple)):
-        fonts_list = [str(f).strip().lower() for f in docx_fonts if f]
-
-    if fonts_list is not None and len(fonts_list) > 0:
-        if any(f in GOOD_FONTS for f in fonts_list):
-            safe_typography = True
-        elif any(f in BAD_FONTS for f in fonts_list):
-            safe_typography = False
-        else:
-            safe_typography = False
-    else:
-        safe_typography = None  # indeterminado si no pudimos leer fuentes
-
-    # Preferimos docx_fonts explícito; si no, intentamos docx_meta['fonts']
-    fonts_list = None
-    if docx_fonts:
-        fonts_list = [f.strip().lower() for f in docx_fonts if f]
+        detected_fonts = list(docx_fonts)
+    # o si vino en meta de docx
     elif docx_meta and isinstance(docx_meta.get("fonts"), list):
-        fonts_list = [str(f).strip().lower() for f in docx_meta["fonts"] if f]
+        detected_fonts = list(docx_meta["fonts"])
+    # o si vino en meta de pdf (por si decides no enviarlo en docx_fonts)
+    elif pdf_meta and isinstance(pdf_meta.get("fonts"), list):
+        detected_fonts = list(pdf_meta["fonts"])
 
-    if fonts_list is not None:
-        # Regla simple: si hay alguna de GOOD_FONTS => True; si hay alguna BAD_FONTS => False;
-        # si ninguna coincide, consideramos False (no segura) para ser estrictos.
-        if any(f in GOOD_FONTS for f in fonts_list):
+    normalized = normalize_fonts(detected_fonts)
+    safe_typography: Optional[bool]
+    if normalized:
+        if any(f in GOOD_FONTS for f in normalized):
             safe_typography = True
-        elif any(f in BAD_FONTS for f in fonts_list):
+        elif any(f in BAD_FONTS for f in normalized):
             safe_typography = False
         else:
+            # si no coincide con ninguna lista, se considera “no segura”
             safe_typography = False
     else:
-        # No sabemos (PDF u otro caso sin fuentes detectables)
-        safe_typography = None
+        safe_typography = None  # indeterminado (común en PDFs si no hay PyMuPDF)
 
-    # 6) Bonus por mencionar fuentes seguras en texto (heurística débil para PDFs)
+    # 6) Bonus leve si es indeterminado pero se menciona una fuente segura en el texto
     common = [w for w in words if w.isalpha()]
     _ = [w for w, _c in Counter(common).most_common(200)]
     fonts_bonus = 0
     if safe_typography is None:
         if any(f in t_lc for f in GOOD_FONTS):
-            fonts_bonus = 3  # bonus leve por mención textual
+            fonts_bonus = 3
 
     # ===== Scoring =====
     score = 0
-    # Secciones: hasta 45 pts (9 c/u, 5 secciones)
-    score += min(found_sections, 5) * 9
-    # Idioma ES/EN: 20 pts
-    score += 20 if lang_ok else 0
-    # Páginas: <=2 15 pts; 3 páginas 7 pts
-    if pages_ok:
+    score += min(found_sections, 5) * 9        # secciones (hasta 45)
+    score += 20 if lang_ok else 0              # idioma
+    if pages_ok:                               # páginas
         score += 15
     elif pages == 3:
         score += 7
-    # Evitar imágenes y tablas/columnas: 10 + 10
-    score += 10 if no_images else 0
-    score += 10 if no_tables else 0
-    # Tipografía segura conocida suma 5; indeterminado no penaliza (se maneja con fonts_bonus si aplica)
-    if safe_typography is True:
+    score += 10 if no_images else 0            # sin imágenes
+    score += 10 if no_tables else 0            # sin tablas/columnas
+    if safe_typography is True:                # tipografía segura confirmada
         score += 5
-    # Bonus menor por mención textual (solo si indeterminado)
-    score += fonts_bonus
+    score += fonts_bonus                       # bonus textual si indeterminado
 
     score = max(0, min(100, score))
 
@@ -178,5 +200,7 @@ def evaluate_ats_compliance(
         "has_tables_or_columns": has_tables_or_columns,
         "safe_typography": safe_typography,
         "fonts_bonus": fonts_bonus,
+        # opcional: para depurar puedes exponer qué fuentes se detectaron
+        # "detected_fonts": normalized,
     }
     return score, details

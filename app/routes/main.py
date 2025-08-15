@@ -194,17 +194,26 @@ def index():
             idioma_detectado = detectar_idioma(cv_text + " " + jobdesc)
             disclaimer = disclaimer_text(idioma_detectado)
 
-            # ATS score (estructura/lineamientos)
+            # Idioma para ATS y compliance
             res_lang = detectar_idioma(cv_text)  # 'en' / 'es'
+
+            # Pasamos fuentes detectadas: si es PDF vienen en pdf_meta['fonts'],
+            # si es DOCX podrías tenerlas en docx_meta['fonts'] o recopiladas aparte
+            fonts_for_ats = None
+            if ext == "pdf" and pdf_meta:
+                fonts_for_ats = pdf_meta.get("fonts")
+            elif docx_meta:
+                fonts_for_ats = docx_meta.get("fonts")
+
             score_ats, ats_details = evaluate_ats_compliance(
                 text=cv_text,
                 lang_code=res_lang,
                 ext=ext,
                 pdf_meta=pdf_meta,
                 docx_meta=docx_meta,
-                docx_fonts=docx_fonts if ext == "docx" else pdf_fonts  # <- el evaluador aceptará este parámetro
+                docx_fonts=fonts_for_ats   # <— aquí
             )
-
+            
             # Persistencia
             u = db.session.get(User, email)
             if not u:
