@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Informe de Análisis – CV Match Scanner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap 5 + Icons via CDN (solo para la impresión) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    /* Márgenes de página agradables para PDF */
+    @page { size: A4; margin: 16mm; }
+    @media print {
+      .no-print { display: none !important; }
+      .card, .shadow-sm { box-shadow: none !important; }
+      .page-break { page-break-before: always; }
+    }
+    /* Afinado visual para la impresión */
+    .header-meta small { color:#6c757d; }
+    .donut-host { display:flex; justify-content:center; align-items:center; }
+    .analysis-meters .card { border: 1px solid #dee2e6; }
+  </style>
+</head>
+<body class="bg-white">
+
+<div class="container my-3">
+  <!-- Encabezado del informe -->
+  <div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+      <h2 class="mb-1">Informe de Análisis</h2>
+      <div class="header-meta">
+        <small>
+          Fecha: {{ created_at.strftime("%Y-%m-%d %H:%M") if created_at else "" }}<br>
+          Correo: {{ email or "" }}<br>
+          Archivo: {{ filename or "" }}
+        </small>
+      </div>
+    </div>
+
+    <button class="btn btn-primary no-print" onclick="window.print()">
+      <i class="bi bi-printer"></i> Imprimir / Guardar PDF
+    </button>
+  </div>
+
+    <!-- ======= AQUÍ PEGAMOS EL MISMO BLOQUE DE ANÁLISIS DE index.html ======= -->
+    {% include "_analysis_block.html" with
+        score_jd=score_jd,
+        score_ats=score_ats,
+        feedback=feedback_html,  {# o 'feedback' si así lo nombras #}
+        disclaimer=disclaimer,
+        ats_details=ats_details,
+        model_used=model_used,
+        exec_id=exec_id,
+        max_mb=max_mb,
+        print_mode=True
+    %}
+</div>
+
+<!-- JS para animar los donuts (mismo que usas en index, reducido) -->
+<script>
+(function(){
+  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+  function ind(el){ return el.querySelector('.donut-indicator'); }
+  function lbl(el){ return el.querySelector('.donut-label'); }
+  function setColor(el, score){
+    const color = (score >= 75) ? '#28a745' : (score >= 50 ? '#ffc107' : '#dc3545');
+    ind(el).style.setProperty('--donut-color', color);
+  }
+  function setDash(el, val){ ind(el).style.setProperty('--dash', String(val)); }
+  function setLabel(el, val){ const l = lbl(el); if (l) l.textContent = Math.round(val) + '%'; }
+  function animateDonut(container, target, duration){
+    const to = Math.max(0, Math.min(100, parseInt(target || 0, 10)));
+    if (!ind(container)) return;
+    setColor(container, to);
+    const start = performance.now(); setDash(container, 0); setLabel(container, 0);
+    function tick(now){
+      const t = Math.min(1, (now - start) / duration);
+      const val = to * (1 - Math.pow(1 - t, 3));
+      setDash(container, val); setLabel(container, val);
+      if (t < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  function init(){
+    document.querySelectorAll('.donut').forEach(d=>{
+      animateDonut(d, d.getAttribute('data-score') || 0, 600);
+    });
+    // Espera a que todo pinte y abre el diálogo de impresión si venimos con target=_blank
+    setTimeout(()=>{ /* opcional: window.print(); */ }, 700);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+
+</body>
+</html>
