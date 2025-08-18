@@ -139,6 +139,18 @@
                 </ul>
               </div>
 
+              {% if is_admin %}
+                <div class="ms-3">
+                  <label for="modelSelect" class="form-label fw-bold small mb-1">Select model</label>
+                  <select id="modelSelect" class="form-select form-select-sm" onchange="changeModel(this.value)">
+                    <option value="auto" {% if session.selected_model == 'auto' %}selected{% endif %}>Auto</option>
+                    <option value="openai" {% if session.selected_model == 'openai' %}selected{% endif %}>OpenAI</option>
+                    <option value="gemini" {% if session.selected_model == 'gemini' %}selected{% endif %}>Gemini</option>
+                  </select>
+                </div>
+              {% endif %}
+
+
               <div class="mb-2">
                 <label class="form-label label-with-badge">
                   <span id="badge-step1" class="badge-circle">1</span>
@@ -201,7 +213,7 @@
       </div>
 
       <!-- DERECHA: LINEAMIENTOS -->
-      <div class="col-12 col-lg-6 pt-0 pb-0 ps-0 pe-3">
+      <div class="col-12 col-lg-6 ps-3 pt-0 pb-0 pe-0">
         <div class="card p-4 shadow-sm h-100 d-flex align-items-stretch">
           <!-- tu bloque de lineamientos tal como lo tienes -->
           <div class="w-100">
@@ -601,6 +613,19 @@
     behavior: prefersReduced ? 'auto' : 'smooth'
   });
 })();
+
+function changeModel(value) {
+  fetch("{{ url_for('main.set_model') }}", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({model: value})
+  })
+  .then(r => r.json())
+  .then(data => {
+    console.log("Modelo cambiado a:", data.model);
+  })
+  .catch(err => console.error("Error cambiando modelo:", err));
+}
 </script>
 {% endblock %}
 

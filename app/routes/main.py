@@ -1,4 +1,8 @@
-from flask import Blueprint, render_template, request, session, redirect, url_for, flash, make_response, send_from_directory, current_app
+from flask import (
+    Blueprint, render_template, request, 
+    session, redirect, url_for, flash, make_response, 
+    send_from_directory, current_app, jsonify
+)
 from datetime import datetime
 from sqlalchemy import asc
 
@@ -124,13 +128,10 @@ def index():
 
             nombre_persona = name or email
 
-            fb_openai, oi_error = analizar_openai(cv_text, jobdesc, nombre=nombre_persona)
-            if fb_openai:
-                feedback_text = fb_openai
-                model_vendor  = "openai"
-                model_name    = "gpt-4o"
-                model_used    = 1
-            else:
+            # lee el modelo elegido por el admin (por defecto: openai)
+            selected_model = session.get("selected_model", "auto")
+
+            if selected_model == "gemini":
                 fb_gemini = analizar_gemini(cv_text, jobdesc, nombre=nombre_persona)
                 if fb_gemini:
                     feedback_text = fb_gemini
@@ -138,9 +139,36 @@ def index():
                     model_name    = "gemini-1.5-flash"
                     model_used    = 2
 
+            elif selected_model == "openai":
+                fb_openai, oi_error = analizar_openai(cv_text, jobdesc, nombre=nombre_persona)
+                if fb_openai:
+                    feedback_text = fb_openai
+                    model_vendor  = "openai"
+                    model_name    = "gpt-4o"
+                    model_used    = 1
+
+            else:  # auto
+                fb_openai, oi_error = analizar_openai(cv_text, jobdesc, nombre=nombre_persona)
+                if fb_openai:
+                    feedback_text = fb_openai
+                    model_vendor  = "openai"
+                    model_name    = "gpt-4o"
+                    model_used    = 1
+                else:
+                    fb_gemini = analizar_gemini(cv_text, jobdesc, nombre=nombre_persona)
+                    if fb_gemini:
+                        feedback_text = fb_gemini
+                        model_vendor  = "gemini"
+                        model_name    = "gemini-1.5-flash"
+                        model_used    = 2
+
+            # si el modelo elegido no devolvió nada, mostramos error
             if not feedback_text:
-                current_app.logger.error("No se pudo generar feedback. OpenAI err: %s", oi_error)
-                flash("No pudimos generar el análisis en este momento. Intenta nuevamente.")
+                current_app.logger.error(
+                    "No se pudo generar feedback con el modelo '%s'. err=%s",
+                    selected_model, oi_error
+                )
+                flash("No pudimos generar el análisis en este momento. Intenta nuevamente.", "danger")
                 return redirect(url_for("main.index"))
 
             # Extraer score JD y limpiar encabezado numérico si viene como "NN%"
@@ -207,7 +235,8 @@ def index():
                 exec_id=ex.id,
                 max_mb=MAX_MB,
                 jobdesc=jobdesc,
-                just_analyzed=True
+                just_analyzed=True,
+                is_admin=_is_admin()
             ))
             resp.headers["Content-Type"] = "text/html; charset=utf-8"
             return resp
@@ -226,7 +255,8 @@ def index():
         ats_details=None,
         model_used=None, exec_id=None,
         max_mb=MAX_MB, jobdesc=None,
-        just_analyzed=False
+        just_analyzed=False,
+        is_admin=_is_admin()
     )
 
 
@@ -265,3 +295,25 @@ def leave_comment():
     db.session.commit()
 
     return redirect(url_for('main.index'))
+
+
+def _is_admin():
+    email = session.get("user_email")
+    admin = current_app.config.get("ADMIN_EMAIL")
+    return bool(admin and email and email.lower() == admin.lower())
+
+
+@bp.route("/set_model", methods=["POST"])
+def set_model():
+    if not _is_admin():
+        return jsonify({"error": "Unauthorized"}), 403
+    
+    data = request.get_json() or {}
+    model = data.get("model", "openai")
+    if model not in ["openai", "gemini"]:
+        model = "openai"
+    
+    session["selected_model"] = model
+    return jsonify({"model": model})
+
+
