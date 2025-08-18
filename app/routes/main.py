@@ -317,3 +317,12 @@ def set_model():
     return jsonify({"model": model})
 
 
+# --- Selector de idiomas ---
+@bp.route("/set_lang", methods=["POST"])
+def set_lang():
+    data = request.get_json(silent=True) or {}
+    lang = (data.get("lang") or "es").lower()
+    if lang not in ("es", "en"):
+        lang = "es"
+    session["lang"] = lang
+    return jsonify({"lang": lang})

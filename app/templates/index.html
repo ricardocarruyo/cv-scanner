@@ -116,12 +116,6 @@
           {% else %}
             <form method="post" enctype="multipart/form-data" action="{{ url_for('main.index') }}">
               
-            <!--   <div class="mb-3">
-                <label class="form-label">Ocupación (opcional):</label>
-                <input type="text" class="form-control" name="occupation"
-                      placeholder="Ej.: Analista de Negocio, QA, DevOps"
-                      value="{{ occupation or '' }}">
-              </div> -->
 
               <div class="w-100">
                 <h5 class="mb-3">Lineamientos para subir tu CV</h5>
@@ -137,19 +131,7 @@
                     </a>
                   </li>
                 </ul>
-              </div>
-
-              {% if is_admin %}
-                <div class="ms-3">
-                  <label for="modelSelect" class="form-label fw-bold small mb-1">Select model</label>
-                  <select id="modelSelect" class="form-select form-select-sm" onchange="changeModel(this.value)">
-                    <option value="auto" {% if session.selected_model == 'auto' %}selected{% endif %}>Auto</option>
-                    <option value="openai" {% if session.selected_model == 'openai' %}selected{% endif %}>OpenAI</option>
-                    <option value="gemini" {% if session.selected_model == 'gemini' %}selected{% endif %}>Gemini</option>
-                  </select>
-                </div>
-              {% endif %}
-
+              </div>    
 
               <div class="mb-2">
                 <label class="form-label label-with-badge">
@@ -217,19 +199,6 @@
         <div class="card p-4 shadow-sm h-100 d-flex align-items-stretch">
           <!-- tu bloque de lineamientos tal como lo tienes -->
           <div class="w-100">
-      <!--       <h5 class="mb-3">Lineamientos para subir tu CV</h5>
-            <ul class="small mb-3">
-              <li>Formato: <strong>PDF o DOCX</strong></li>
-              <li>Idioma: <strong>Español o Inglés</strong></li>
-              <li>Texto legible (no imagen escaneada)</li>
-              <li>Tamaño máximo: <strong>{{ max_mb }} MB</strong></li>
-              <li>Solo el CV (no adjuntes otros documentos)</li>
-              <li>
-                <a class="link-primary" href="{{ url_for('static', filename='docs/Plantilla_CV_ATS_STAR.docx') }}" download>
-                  Descargar Plantilla CV ATS
-                </a>
-              </li>
-            </ul> -->
 
             <h5 class="mb-3">Recomendaciones ATS</h5>
             <ul class="small">
@@ -270,6 +239,17 @@
               <li><strong>A</strong>cción: qué hiciste específicamente.</li>
               <li><strong>R</strong>esultado: impacto medible (%, tiempos, ahorros, etc.).</li>
             </ul>
+
+            {% if is_admin %}
+              <div class="ms-3">
+                <label for="modelSelect" class="form-label fw-bold small mb-1">Select model</label>
+                <select id="modelSelect" class="form-select form-select-sm" onchange="changeModel(this.value)">
+                  <option value="auto" {% if session.selected_model == 'auto' %}selected{% endif %}>Auto</option>
+                  <option value="openai" {% if session.selected_model == 'openai' %}selected{% endif %}>OpenAI</option>
+                  <option value="gemini" {% if session.selected_model == 'gemini' %}selected{% endif %}>Gemini</option>
+                </select>
+              </div>
+            {% endif %}
           </div> 
         </div>
       </div>
