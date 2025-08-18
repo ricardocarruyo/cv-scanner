@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, session, jsonify
 from .config import Config
 from .extensions import db
 from .routes.main import bp as main_bp
@@ -26,9 +26,11 @@ def create_app():
     
     @app.context_processor
     def inject_globals():
+        lang = (session.get("lang") or "es").lower()
         return {
             "current_year": datetime.utcnow().year,
-            "version": app.config.get("APP_VERSION", "v0")
+            "version": app.config.get("APP_VERSION", "v0"),
+            "is_en": (lang == "en")
         }
 
     return app
