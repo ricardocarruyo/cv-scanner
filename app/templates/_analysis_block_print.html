@@ -1,0 +1,123 @@
+{# templates/_analysis_block_print.html #}
+{# Requiere: score_jd, score_ats, feedback (HTML ya sanitizado), 
+   disclaimer (opcional), ats_details (opcional), max_mb (opcional) #}
+
+{% macro donut_static(score, label) %}
+  {% set s = (score or 0)|int %}
+  {% set dash = 100 %}
+  {% set off = 100 - s %}
+  {% if s >= 75 %}
+    {% set color = '#28a745' %}
+  {% elif s >= 50 %}
+    {% set color = '#ffc107' %}
+  {% else %}
+    {% set color = '#dc3545' %}
+  {% endif %}
+  <div style="display:flex;flex-direction:column;align-items:center;gap:.35rem;min-width:220px;">
+    <svg viewBox="-2 -2 40 40" width="160" height="160" aria-label="{{ label }}">
+      <circle cx="18" cy="18" r="15"
+              fill="none" stroke="#e9ecef" stroke-width="6"
+              stroke-linecap="round" pathLength="100"
+              stroke-dasharray="100" stroke-dashoffset="0" />
+      <circle cx="18" cy="18" r="15"
+              fill="none" stroke="{{ color }}" stroke-width="6"
+              stroke-linecap="round" pathLength="100"
+              stroke-dasharray="{{ dash }}" stroke-dashoffset="{{ off }}" />
+      <text x="18" y="20" text-anchor="middle"
+            font-size="7" font-family="Arial, Helvetica, sans-serif"
+            fill="#212529">{{ s }}%</text>
+    </svg>
+    <div style="font-size:12px;color:#6c757d;text-align:center">{{ label }}</div>
+  </div>
+{% endmacro %}
+
+<style>
+  @media print { html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+
+<div class="card p-4 shadow-sm mt-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h3 class="mb-0">Análisis de la IA</h3>
+  </div>
+
+  <!-- Donas estáticas -->
+  <div class="d-flex flex-wrap gap-4 justify-content-evenly align-items-center">
+    {{ donut_static(score_jd, 'Coincidencia con Job Description') }}
+    {{ donut_static(score_ats, 'Coincidencia con Plantilla CV ATS') }}
+  </div>
+
+  {% if disclaimer %}
+    <div class="alert alert-info mt-3" role="alert">{{ disclaimer }}</div>
+  {% endif %}
+
+  {% if ats_details %}
+    <div class="card mt-3 mb-2 p-3">
+      <h6 class="fw-bold mb-3">Checklist ATS detectado</h6>
+      <div class="row gy-2 gx-4">
+        <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
+          {% set ok = not ats_details.has_images %}
+          <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
+          <span>Imágenes en el CV: <strong>{{ 'No' if ok else 'Sí' }}</strong></span>
+        </div>
+        <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
+          {% set ok = not ats_details.has_tables_or_columns %}
+          <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
+          <span>Tablas o columnas: <strong>{{ 'No' if ok else 'Sí' }}</strong></span>
+        </div>
+        <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
+          {% if ats_details.safe_typography is none %}
+            <i class="bi bi-dash-circle-fill text-secondary me-2"></i>
+            <span>Tipografía segura: <strong>Indeterminado</strong></span>
+          {% else %}
+            {% set ok = ats_details.safe_typography %}
+            <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
+            <span>Tipografía segura: <strong>{{ 'Sí' if ok else 'No' }}</strong></span>
+          {% endif %}
+        </div>
+        {% set present = ats_details.sections_present or [] %}
+        {% for label in ['perfil profesional','experiencia laboral','educación','habilidades','idiomas'] %}
+          <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
+            {% set ok = label in present %}
+            <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
+            <span>{{ label|capitalize }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="mt-3">
+    {{ feedback|safe }}
+  </div>
+
+  <hr class="my-4">
+  <h5 class="mb-2">Lineamientos y equivalencias ATS</h5>
+  <ul class="small mb-2">
+    <li>Formato: <strong>PDF o DOCX</strong>. Idioma: <strong>Español o Inglés</strong>. Texto legible (no escaneado). Máx. {{ (max_mb or 2) }} MB.</li>
+    <li>Evita imágenes, tablas y columnas; usa encabezados simples y bullets estándar.</li>
+    <li>Tipografías seguras: Arial, Calibri, Helvetica, Verdana.</li>
+    <li>Descarga la plantilla desde el sitio: Plantilla CV ATS.</li>
+  </ul>
+  <div class="row">
+    <div class="col-md-6">
+      <div class="fw-semibold small">Secciones equivalentes aceptadas</div>
+      <ul class="small mb-3">
+        <li><strong>Perfil profesional</strong> → Resumen profesional, Resumen, Objetivo(s), <em>Summary</em>, <em>Professional Summary</em>, <em>Profile</em>, <em>Objective</em>.</li>
+        <li><strong>Experiencia laboral</strong> → Experiencia profesional, Experiencia, <em>Work Experience</em>, <em>Employment History</em>, <em>Career History</em>.</li>
+        <li><strong>Educación</strong> → Formación académica, <em>Education</em>, <em>Academic Background</em>.</li>
+        <li><strong>Habilidades</strong> → Competencias, <em>Skills</em>, <em>Hard/Soft/Technical Skills</em>.</li>
+        <li><strong>Idiomas</strong> → <em>Languages</em>.</li>
+      </ul>
+    </div>
+    <div class="col-md-6">
+      <div class="fw-semibold small">Formato STAR para tu experiencia</div>
+      <p class="small mb-1">Redacta cada logro con STAR para mejorar la lectura por ATS y por reclutadores:</p>
+      <ul class="small mb-0">
+        <li><strong>S</strong>ituación: contexto o problema.</li>
+        <li><strong>T</strong>area: objetivo o responsabilidad.</li>
+        <li><strong>A</strong>cción: qué hiciste específicamente.</li>
+        <li><strong>R</strong>esultado: impacto cuantificable (% mejora, tiempos, costos, calidad).</li>
+      </ul>
+    </div>
+  </div>
+</div>

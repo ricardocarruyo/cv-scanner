@@ -6,6 +6,8 @@ from ..extensions import db
 from ..models import Execution, Comment
 from ..services.pdf import render_analysis_pdf
 from ..models import Execution, Comment, User
+from ..services.ai import sanitize_markdown, detectar_idioma, disclaimer_text
+
 
 bp = Blueprint("history", __name__, url_prefix="/history")
 
@@ -137,19 +139,27 @@ def print_view(exec_id):
     if not ex:
         abort(404)
 
-    # Lo que guardaste cuando analizaste
-    context = {
-        "exec_id": ex.id,
-        "created_at": ex.created_at,       # para fecha en el encabezado
-        "email": ex.email,
-        "filename": ex.uploaded_filename,
-        "score_jd": ex.score,              # si guardas "score" como JD
-        "score_ats": ex.ats_score,
-        # feedback_text lo guardaste en texto plano markdown; en index lo sanitizas a HTML
-        # aquí lo renderizamos igual que en index: pasa feedback_html desde index si lo prefieres.
-        "feedback_html": ex.feedback_text, # en la plantilla lo marcarás |safe si ya está sanitizado
-        # Para que aparezca el “Checklist ATS detectado”, te llega desde index como ats_details;
-        # si lo quieres persistir, agrega una columna JSON en Execution. Si aún no, puedes no pintarlo.
-        # Aquí asumo que lo pasas a la plantilla por el render desde index (ver paso 2).
-    }
-    return render_template("print_analysis.html", **context)
+    # Sanitiza el feedback; si ya guardas HTML, puedes omitir sanitize_markdown
+    feedback_html = sanitize_markdown(ex.feedback_text or "")
+
+    # Idioma para el disclaimer (simple pero suficiente)
+    idioma = detectar_idioma((ex.feedback_text or "") + " " + (ex.jd_lang or ""))  # 'es'/'en'
+    disclaimer = disclaimer_text(idioma)
+
+    # Si no persistes ats_details, pasa None y el bloque se ocultará automáticamente
+    ats_details = None
+
+    return render_template(
+        "print_analysis.html",
+        created_at=ex.created_at,
+        email=ex.email,
+        filename=ex.uploaded_filename,
+
+        # variables que consume _analysis_block_print.html
+        score_jd=ex.score or 0,
+        score_ats=ex.ats_score or 0,
+        feedback=feedback_html,
+        disclaimer=disclaimer,
+        ats_details=ats_details,
+        max_mb=2  # o current_app.config.get("MAX_MB", 2)
+    )
