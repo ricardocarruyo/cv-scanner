@@ -361,10 +361,15 @@
    * 2) Uploader (click + drag&drop + limpiar)
    * ========================================= */
   function initUploader(){
+    if (window.__cvms_uploader_inited) return;
+    window.__cvms_uploader_inited = true;
+    
     const dz = document.getElementById('dropzone');
     const fi = document.getElementById('file-input');
     const fn = document.getElementById('file-name');
     if (!dz || !fi || !fn) return;
+
+    let isPicking = false; // <— candado
 
     const MAX_BYTES = MAX_MB * 1024 * 1024;
 
@@ -407,10 +412,17 @@
     }
 
     // click en zona -> abre selector
-    dz.addEventListener('click', function(e){ e.preventDefault(); fi.click(); });
+    dz.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      if (isPicking) return;
+      isPicking = true;
+      try { fi.click(); } finally { /* nada */ }
+    });
 
     // selector manual
     fi.addEventListener('change', function(e){
+      isPicking = false; // resetea el candado
       const f = e.target.files && e.target.files[0];
       if (!f) { clearVisual(); return; }
       if (!validar(f)) { fi.value = ''; clearVisual(); return; }
@@ -455,11 +467,11 @@
   }
 
   // Exporta/llama en tu boot
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initUploader);
-  } else {
-    initUploader();
-  }
+  // if (document.readyState === 'loading') {
+  //   document.addEventListener('DOMContentLoaded', initUploader);
+  // } else {
+  //   initUploader();
+  // }
 
   /* ===== 3) Tooltips ===== */
   function initTooltips(){
