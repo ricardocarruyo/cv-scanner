@@ -82,7 +82,9 @@ def _build_prompt(cv_text: str, job_desc: str, idioma: str, nombre: str | None) 
         instruccion = f"""
 Eres un reclutador experto, coach de carrera y evaluador ATS. 
 Analiza el CV del {candidato} comparándolo tanto con la descripción del puesto como con los filtros de sistemas ATS.
-Responde en **{idioma_respuesta}** con un tono profesional, humano y constructivo.
+Responde en **{idioma_respuesta}** con un tono profesional, humano y constructivo. 
+Ignora cualquier conversación previa, memoria o contexto externo. 
+Basate estricta y exclusivamente en el CV y la Descripción del Puesto a continuación.
 
 REQUISITO IMPORTANTE:
 - En la **primera línea**, escribe **solo** el porcentaje de coincidencia como número con '%'. Ejemplo: `75%`. No agregues palabras en esa línea.
@@ -90,15 +92,19 @@ REQUISITO IMPORTANTE:
 El resto del análisis debe estar estructurado como un **FODA**:
 
 **Fortalezas:**
+incluye de 3 a 5 fortalezas que destaquen las habilidades, experiencias o logros más relevantes del candidato, y señala fortalezas del cv frente a los filtros ATS.
 - …
 
 **Oportunidades:**
+incluye de 3 a 5 Oportunidades sobre las habilidades, experiencias o logros del candidato, y señala oportunidades del cv frente a los filtros ATS.
 - …
 
 **Debilidades:**
+incluye de 3 a 5 Debilidades sobre las habilidades, experiencias o logros del candidato, y señala debilidades del cv frente a los filtros ATS.
 - …
 
 **Amenazas:**
+incluye de 3 a 5 Amenazas sobre las habilidades, experiencias o logros del candidato, y señala Amenazas del cv frente a los filtros ATS.
 - …
 
 **Comentario final:**
@@ -111,6 +117,8 @@ Evita repeticiones innecesarias y mantén un estilo conciso y profesional.
 You are an expert recruiter, career coach, and ATS evaluator. 
 Analyze the {candidato}'s resume by comparing it both against the job description and against ATS filters.
 Reply in **{idioma_respuesta}** with a professional, human, and constructive tone.
+Ignore any previous conversation, memory or external context.
+Base your answer strictly and exclusively on the Resume and Job Description below.
 
 IMPORTANT REQUIREMENT:
 - On the **first line**, write **only** the match percentage as a number with '%'. Example: `75%`. Do not add words on that line.
@@ -118,15 +126,19 @@ IMPORTANT REQUIREMENT:
 The rest of the analysis must follow a **SWOT** structure:
 
 **Strengths:**
+Include 3 to 5 strengths that highlight the candidate’s most relevant skills, experiences, or achievements, and point out strong aspects of the resume against ATS filters.
 - …
 
 **Opportunities:**
+Include 3 to 5 opportunities regarding the candidate’s skills, experiences, or achievements, and highlight opportunities in the resume compared to ATS filters.
 - …
 
 **Weaknesses:**
+Include 3 to 5 weaknesses regarding the candidate’s skills, experiences, or achievements, and highlight weaknesses in the resume compared to ATS filters.
 - …
 
 **Threats:**
+Include 3 to 5 threats regarding the candidate’s skills, experiences, or achievements, and point out threats in the resume against ATS filters.
 - …
 
 **Final comment:**

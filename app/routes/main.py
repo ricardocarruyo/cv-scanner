@@ -266,6 +266,8 @@ def index():
                 is_admin=_is_admin()
             ))
             resp.headers["Content-Type"] = "text/html; charset=utf-8"
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0, s-maxage=0"
+            resp.headers["Pragma"] = "no-cache"
             return resp
 
         except Exception:

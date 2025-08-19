@@ -293,7 +293,8 @@
   "max_mb": (max_mb or 2),
   "txt_bad_ext": t('err.bad_ext'),
   "txt_too_big": t('err.too_big', max_mb=max_mb or 2),
-  "txt_need_file": t('err.no_file')
+  "txt_need_file": t('err.no_file'),
+  "user_key": email or "anon" 
 } | tojson }}
 </script>
 
@@ -486,7 +487,7 @@
     const counter  = document.getElementById('char-count');
     if (!ta) return;
 
-    const KEY = 'cvms_jobdesc';
+    const KEY = 'cvms_jobdesc_' + (CFG.user_key || 'anon');
     if (!ta.value.trim()) {
       const saved = localStorage.getItem(KEY);
       if (saved) ta.value = saved.slice(0, 4000);
