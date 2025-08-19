@@ -1,6 +1,7 @@
+# app/routes/main.py
 from flask import (
-    Blueprint, render_template, request, 
-    session, redirect, url_for, flash, make_response, 
+    Blueprint, render_template, request,
+    session, redirect, url_for, flash, make_response,
     send_from_directory, current_app, jsonify
 )
 from datetime import datetime
@@ -15,6 +16,7 @@ from ..services.ai import (
     sanitize_markdown, detectar_idioma, disclaimer_text
 )
 from ..services.ats import evaluate_ats_compliance
+from ..i18n import tr   # <-- i18n helper
 
 bp = Blueprint("main", __name__)
 MAX_MB = 2
@@ -31,16 +33,31 @@ def favicon():
 
 @bp.route("/descargas/plantilla-ats")
 def descargar_plantilla_ats():
+    # Descarga la plantilla en el idioma elegido
+    lang = (session.get("lang") or "es").lower()
+    if lang == "en":
+        relpath = "docs/ATS_CV_Template_English.docx"
+        dlname  = "ATS_CV_Template_English.docx"
+    else:
+        relpath = "docs/Plantilla_CV_ATS_STAR.docx"
+        dlname  = "Plantilla_CV_ATS_STAR.docx"
+
     return send_from_directory(
         current_app.static_folder,
-        "docs/Plantilla_CV_ATS_STAR.docx",
+        relpath,
         as_attachment=True,
-        download_name="Plantilla_CV_ATS_STAR.docx"
+        download_name=dlname
     )
 
 
 @bp.route("/", methods=["GET", "POST"])
 def index():
+    # idioma de la UI
+    lang = (session.get("lang") or "es").lower()
+    is_en = (lang == "en")
+    # helper para usar en Jinja: t('clave', **kwargs)
+    T = lambda key, **kw: tr(lang, key, **kw)
+
     email = session.get("user_email")
     name = session.get("user_name")
     picture = session.get("user_picture")
@@ -48,7 +65,7 @@ def index():
     if request.method == "POST":
         try:
             if not email:
-                flash("Inicia sesión para analizar tu CV.")
+                flash(T("err.login"))
                 return redirect(url_for("auth.login"))
 
             file = request.files.get("cv")
@@ -62,24 +79,24 @@ def index():
 
             # Validaciones
             if not filename:
-                flash("No se recibió ningún archivo. Selecciona un PDF o DOCX.")
+                flash(T("err.no_file"))
                 return redirect(url_for("main.index"))
 
             if not jobdesc:
-                flash("Falta la descripción del puesto.")
+                flash(T("err.no_jd"))
                 return redirect(url_for("main.index"))
 
             if not allowed_file(filename):
-                flash("Formato no permitido. Solo PDF o DOCX.")
+                flash(T("err.bad_ext"))
                 return redirect(url_for("main.index"))
 
             data = file.read() or b""
             if not data:
-                flash("El archivo está vacío o no se pudo leer.")
+                flash(T("err.empty"))
                 return redirect(url_for("main.index"))
 
             if len(data) > MAX_MB * 1024 * 1024:
-                flash(f"El archivo supera {MAX_MB} MB.")
+                flash(T("err.too_big", max_mb=MAX_MB))
                 return redirect(url_for("main.index"))
 
             # Extensión segura
@@ -96,7 +113,7 @@ def index():
             cv_text = cv_text or ""
 
             if looks_suspicious(cv_text[:100000]):
-                flash("Detectamos contenido potencialmente peligroso en el archivo.")
+                flash(T("err.malicious"))
                 return redirect(url_for("main.index"))
 
             # Idioma del CV
@@ -128,8 +145,10 @@ def index():
 
             nombre_persona = name or email
 
-            # lee el modelo elegido por el admin (por defecto: openai)
+            # modelo elegido por admin (por defecto: auto)
             selected_model = session.get("selected_model", "auto")
+            if selected_model not in ("auto", "openai", "gemini"):
+                selected_model = "auto"
 
             if selected_model == "gemini":
                 fb_gemini = analizar_gemini(cv_text, jobdesc, nombre=nombre_persona)
@@ -162,13 +181,12 @@ def index():
                         model_name    = "gemini-1.5-flash"
                         model_used    = 2
 
-            # si el modelo elegido no devolvió nada, mostramos error
             if not feedback_text:
                 current_app.logger.error(
                     "No se pudo generar feedback con el modelo '%s'. err=%s",
                     selected_model, oi_error
                 )
-                flash("No pudimos generar el análisis en este momento. Intenta nuevamente.", "danger")
+                flash(T("err.analysis"))
                 return redirect(url_for("main.index"))
 
             # Extraer score JD y limpiar encabezado numérico si viene como "NN%"
@@ -225,6 +243,9 @@ def index():
 
             resp = make_response(render_template(
                 "index.html",
+                # i18n helpers
+                t=T, is_en=is_en, lang=lang,
+
                 email=email, name=name, picture=picture,
                 feedback=feedback_html,
                 disclaimer=disclaimer,
@@ -243,12 +264,15 @@ def index():
 
         except Exception:
             current_app.logger.exception("Error durante el análisis")
-            flash("Ocurrió un error al procesar el análisis. Inténtalo nuevamente.", "danger")
+            flash(tr(lang, "err.generic"))
             return redirect(url_for("main.index"))
 
     # GET
     return render_template(
         "index.html",
+        # i18n helpers
+        t=T, is_en=is_en, lang=lang,
+
         email=email, name=name, picture=picture,
         feedback=None,
         score_jd=None, score_ats=None,
@@ -262,8 +286,11 @@ def index():
 
 @bp.route('/feedback', methods=['POST'])
 def leave_comment():
+    lang = (session.get("lang") or "es").lower()
+    T = lambda key, **kw: tr(lang, key, **kw)
+
     if not session.get("user_email"):
-        flash("Inicia sesión para enviar sugerencias.")
+        flash(T("err.login"))
         return redirect(url_for("auth.login"))
 
     text = (request.form.get('comment') or "").strip()
@@ -307,12 +334,12 @@ def _is_admin():
 def set_model():
     if not _is_admin():
         return jsonify({"error": "Unauthorized"}), 403
-    
+
     data = request.get_json() or {}
-    model = data.get("model", "openai")
-    if model not in ["openai", "gemini"]:
-        model = "openai"
-    
+    model = (data.get("model") or "auto").lower()
+    if model not in ["auto", "openai", "gemini"]:
+        model = "auto"
+
     session["selected_model"] = model
     return jsonify({"model": model})
 

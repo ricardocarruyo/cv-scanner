@@ -6,6 +6,7 @@ from .routes.auth import bp as auth_bp
 from .routes.history import bp as history_bp
 from .routes.admin import bp as admin_bp
 from datetime import datetime
+from .i18n import tr
 
 def create_app():
     app = Flask(__name__, static_folder="static")
@@ -27,10 +28,13 @@ def create_app():
     @app.context_processor
     def inject_globals():
         lang = (session.get("lang") or "es").lower()
+        def t(key, **kwargs):
+            return tr(lang, key, **kwargs)
         return {
             "current_year": datetime.utcnow().year,
             "version": app.config.get("APP_VERSION", "v0"),
-            "is_en": (lang == "en")
+            "is_en": (lang == "en"),
+            "t": t,
         }
 
     return app

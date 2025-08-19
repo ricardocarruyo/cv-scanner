@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Inicio · CV Match Scanner{% endblock %}
+{% block title %}Inicio · {{ t('app.title') }}{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -14,55 +14,48 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: visible;    /* <- importante para que no recorte el contenedor */
+    overflow: visible;
     min-height: 160px;
   }
 
   .donut-wrap   { position: relative; width: 180px; height: 180px; }
   .donut-svg    { width: 100%; height: 100%; transform: rotate(-90deg); }
 
-  .donut-track {
-    fill: none;
-    stroke: #eee;
-    stroke-width: 4.5;    /* antes 6 */
-  }
-
+  .donut-track { fill: none; stroke: #eee; stroke-width: 4.5; }
   .donut-indicator {
     fill: none;
     stroke: var(--donut-color, #28a745);
-    stroke-width: 4.5;    /* antes 6 */
+    stroke-width: 4.5;
     stroke-linecap: round;
     stroke-dasharray: var(--dash, 0) 100;
     transition: stroke-dasharray .6s ease, stroke .3s ease;
   }
-
   .donut-label {
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
     font-weight: 700; font-size: 1.1rem;
   }
-
   @media (max-width: 991.98px) {
     .analysis-meters .donut-host { min-height: 200px; }
     .donut-wrap { width: 160px; height: 160px; }
-  } 
+  }
 
   #dropzone { border-style: dashed; }
   .dropzone.dragover { background-color:#f8f9fa; border-color:#0d6efd; }
   .dropzone.ok { border-color:#198754; background: var(--bs-success-bg-subtle, #eaf6ed); }
 
   #jobdesc {
-    max-height: 160px;        /* límite para evitar que crezca infinito */
-    overflow-y: auto;         /* solo scroll vertical */
+    max-height: 160px;
+    overflow-y: auto;
     overflow-x: hidden;
     white-space: pre-wrap;
     word-wrap: break-word;
-  }  
+  }
 
   /* Indicadores circulares 1–2–3 */
   .badge-circle{
-    --on-bg: #0d6efd;       /* azul encendido */
-    --off-bg:#e9ecef;       /* gris apagado  */
+    --on-bg: #0d6efd;
+    --off-bg:#e9ecef;
     --on-fg:#fff;
     --off-fg:#6c757d;
 
@@ -87,20 +80,17 @@
     100% { transform: scale(1);   box-shadow: 0 0 0 0 rgba(13,110,253,0); }
   }
   .badge-circle.is-ready{
-    background:#28a745; border-color:#28a745; /* verde “listo” */
+    background:#28a745; border-color:#28a745;
     color:#fff;
     animation: pulse 1.4s ease-in-out infinite;
   }
 
-  /* Pequeños ajustes de alineación en labels/botón */
   .label-with-badge{ display:flex; align-items:center; gap:.5rem; }
   .before-button{ display:flex; align-items:center; gap:.5rem; }
-
 </style>
 {% endblock %}
 
 {% block content %}
-  <!-- Paneles izq. y der. -->
   <div class="container mt-3">
     <div class="row g-4 mb-4 equal-panels">
       <!-- IZQUIERDA: FORM -->
@@ -108,63 +98,61 @@
         <div class="card p-4 shadow-sm h-100">
           {% if not session.get('user_email') %}
             <div class="text-center">
-              <p class="mb-3">Para usar el analizador, primero inicia sesión con Google.</p>
+              <p class="mb-3">{{ is_en and "To use the analyzer, first sign in with Google." or "Para usar el analizador, primero inicia sesión con Google." }}</p>
               <a class="btn btn-outline-primary" href="{{ url_for('auth.login') }}">
-                <i class="bi bi-google"></i> Iniciar sesión con Google
+                <i class="bi bi-google"></i> {{ t('nav.sign_in') }}
               </a>
             </div>
           {% else %}
             <form method="post" enctype="multipart/form-data" action="{{ url_for('main.index') }}">
-              
-
+              <!-- Panel de lineamientos corto arriba del form (opcional) -->
               <div class="w-100">
-                <h5>{{ 'Lineamientos para subir tu CV' if not is_en else 'Guidelines to upload your resume' }}</h5>
+                <h5 class="mb-2">{{ t('panel.guidelines.title') }}</h5>
                 <ul class="small mb-3">
-                  <li>Formato: <strong>PDF o DOCX</strong></li>
-                  <li>Idioma: <strong>Español o Inglés</strong></li>
-                  <li>Texto legible (no imagen escaneada)</li>
-                  <li>Tamaño máximo: <strong>{{ max_mb }} MB</strong></li>
-                  <li>Solo el CV (no adjuntes otros documentos)</li>
+                  {% for li in t('panel.guidelines.items', max_mb=max_mb or 2).split(';;') %}
+                    <li>{{ li|safe }}</li>
+                  {% endfor %}
                   <li>
-                    <a class="link-primary" href="{{ url_for('static', filename='docs/Plantilla_CV_ATS_STAR.docx') }}" download>
-                      Descargar Plantilla CV ATS
+                    <a class="link-primary"
+                       href="{{ url_for('static', filename=(is_en and 'docs/ATS_CV_Template_English.docx' or 'docs/Plantilla_CV_ATS_STAR.docx')) }}"
+                       download>
+                      {{ t('panel.guidelines.download') }}
                     </a>
                   </li>
                 </ul>
-              </div>    
+              </div>
 
+              <!-- Subida de archivo -->
               <div class="mb-2">
                 <label class="form-label label-with-badge">
                   <span id="badge-step1" class="badge-circle">1</span>
-                  Sube tu CV (PDF o DOCX, máx. {{ max_mb or 2 }} MB):
+                  {{ t('form.upload.label', max_mb=max_mb or 2) }}
                 </label>
 
-                <!-- input real (oculto) -->
                 <input id="file-input" name="cv" type="file" accept=".pdf,.docx" class="visually-hidden">
 
-                <!-- zona drag&drop -->
                 <div id="dropzone"
-                    class="dropzone border border-2 rounded-3 p-4 text-center bg-white"
-                    style="border-style:dashed; cursor:pointer;">
-                  <div class="fw-semibold">Arrastra y suelta tu archivo aquí</div>
-                  <div class="text-muted small">o haz clic para elegir desde tu computadora</div>
+                     class="dropzone border border-2 rounded-3 p-4 text-center bg-white"
+                     style="border-style:dashed; cursor:pointer;">
+                  <div class="fw-semibold">{{ t('form.upload.drop_main') }}</div>
+                  <div class="text-muted small">{{ t('form.upload.drop_sub') }}</div>
                   <div id="file-name" class="small mt-2 text-secondary"></div>
                 </div>
 
-                 <div class="d-flex justify-content-between align-items-center mt-1">
+                <div class="d-flex justify-content-between align-items-center mt-1">
                   <button type="button" id="btn-clear-file" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-eraser"></i> Limpiar archivo
-                  </button>                  
+                    <i class="bi bi-eraser"></i> {{ t('form.jd.clear') }}
+                  </button>
                 </div>
 
-                <div class="form-text">Solo PDF/DOCX. Realizamos controles básicos de seguridad.</div>
+                <div class="form-text">{{ t('form.upload.help') }}</div>
               </div>
 
               <!-- Job Description -->
               <div class="mb-3">
                 <label class="form-label label-with-badge">
                   <span id="badge-step2" class="badge-circle">2</span>
-                  Pega la descripción del puesto:
+                  {{ t('form.jd.label') }}
                 </label>
 
                 <textarea id="jobdesc" name="jobdesc"
@@ -176,17 +164,17 @@
 
                 <div class="d-flex justify-content-between align-items-center mt-1">
                   <button type="button" id="btn-clear-jobdesc" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-eraser"></i> Limpiar
+                    <i class="bi bi-eraser"></i> {{ t('form.jd.clear') }}
                   </button>
                   <span id="char-count" class="small text-muted">0/4000</span>
                 </div>
               </div>
 
-              <!-- Botón + indicador ③ al costado -->
+              <!-- Botón + indicador ③ -->
               <div class="before-button">
                 <span id="badge-step3" class="badge-circle">3</span>
                 <button type="submit" class="btn btn-primary w-100">
-                  <i class="bi bi-search"></i> Analizar
+                  <i class="bi bi-search"></i> {{ t('form.analyze') }}
                 </button>
               </div>
             </form>
@@ -197,60 +185,58 @@
       <!-- DERECHA: LINEAMIENTOS -->
       <div class="col-12 col-lg-6 ps-3 pt-0 pb-0 pe-0">
         <div class="card p-4 shadow-sm h-100 d-flex align-items-stretch">
-          <!-- tu bloque de lineamientos tal como lo tienes -->
           <div class="w-100">
-
-            <h5 class="mb-3">Recomendaciones ATS</h5>
+            <h5 class="mb-3">{{ t('panel.ats.title') }}</h5>
             <ul class="small">
-              <li><strong>1–2 páginas</strong> (junior 1 pág., senior hasta 2).</li>
-              <li>Tipografías seguras: Arial, Calibri, Helvetica, Verdana.</li>
-              <li><strong>Evita</strong> imágenes, logos, tablas y columnas.</li>
-              <li>Usa encabezados simples (H1/H2) y bullets estándar.</li>
-              <li>No uses gráficos incrustados ni íconos como texto.</li>
+              {% for li in t('panel.ats.items').split(';;') %}
+                <li>{{ li|safe }}</li>
+              {% endfor %}
             </ul>
 
-            <h6 class="mt-3">Títulos / Secciones equivalentes aceptadas por ATS</h6>
-            <p class="small text-muted mb-2">Puedes usar cualquiera de estos nombres; el sistema los reconocerá como equivalentes.</p>
+            <h6 class="mt-3">{{ t('panel.syn.title') }}</h6>
+            <p class="small text-muted mb-2">{{ t('panel.syn.note') }}</p>
             <ul class="small mb-3">
               <li>
-                <strong>Perfil profesional</strong> → Resumen profesional, Resumen, Objetivo(s), <em>Summary</em>, <em>Professional Summary</em>, <em>Profile</em>, <em>Objective</em>.
+                <strong>{{ is_en and "Professional Profile" or "Perfil profesional" }}</strong>
+                → {{ is_en and "Professional Summary, Summary, Objective(s), Profile" or "Resumen profesional, Resumen, Objetivo(s), Summary, Professional Summary, Profile, Objective" }}.
               </li>
               <li>
-                <strong>Experiencia laboral</strong> → Experiencia profesional, Experiencia, <em>Experience</em>, <em>Professional Experience</em>, <em>Work Experience</em>, <em>Employment History</em>, <em>Career History</em>.
+                <strong>{{ is_en and "Work Experience" or "Experiencia laboral" }}</strong>
+                → {{ is_en and "Professional Experience, Experience, Employment History, Career History" or "Experiencia profesional, Experiencia, Experience, Professional Experience, Work Experience, Employment History, Career History" }}.
               </li>
               <li>
-                <strong>Educación</strong> → Formación académica, <em>Education</em>, <em>Academic Background</em>.
+                <strong>{{ is_en and "Education" or "Educación" }}</strong>
+                → {{ is_en and "Academic Background" or "Formación académica, Education, Academic Background" }}.
               </li>
               <li>
-                <strong>Habilidades</strong> → Competencias, <em>Skills</em>, <em>Hard Skills</em>, <em>Soft Skills</em>, <em>Technical Skills</em>.
+                <strong>{{ is_en and "Skills" or "Habilidades" }}</strong>
+                → {{ is_en and "Competencies, Hard/Soft/Technical Skills" or "Competencias, Skills, Hard Skills, Soft Skills, Technical Skills" }}.
               </li>
               <li>
-                <strong>Idiomas</strong> → <em>Languages</em>.
+                <strong>{{ is_en and "Languages" or "Idiomas" }}</strong>
               </li>
             </ul>
 
-            <h6 class="mt-3">Recomendación: usa el formato STAR en tu experiencia</h6>
-            <p class="small mb-1">
-              El método <strong>STAR</strong> ayuda a redactar logros claros y medibles:
-            </p>
+            <h6 class="mt-3">{{ t('star.title') }}</h6>
+            <p class="small mb-1">{{ t('star.help')|safe }}</p>
             <ul class="small mb-0">
-              <li><strong>S</strong>ituación: contexto o problema.</li>
-              <li><strong>T</strong>area: objetivo o responsabilidad.</li>
-              <li><strong>A</strong>cción: qué hiciste específicamente.</li>
-              <li><strong>R</strong>esultado: impacto medible (%, tiempos, ahorros, etc.).</li>
+              <li>{{ t('star.s')|safe }}</li>
+              <li>{{ t('star.t')|safe }}</li>
+              <li>{{ t('star.a')|safe }}</li>
+              <li>{{ t('star.r')|safe }}</li>
             </ul>
 
             {% if is_admin %}
-              <div class="ms-3">
+              <div class="ms-3 mt-3">
                 <label for="modelSelect" class="form-label fw-bold small mb-1">Select model</label>
                 <select id="modelSelect" class="form-select form-select-sm" onchange="changeModel(this.value)">
-                  <option value="auto" {% if session.selected_model == 'auto' %}selected{% endif %}>Auto</option>
+                  <option value="auto"   {% if session.selected_model == 'auto' %}selected{% endif %}>Auto</option>
                   <option value="openai" {% if session.selected_model == 'openai' %}selected{% endif %}>OpenAI</option>
                   <option value="gemini" {% if session.selected_model == 'gemini' %}selected{% endif %}>Gemini</option>
                 </select>
               </div>
             {% endif %}
-          </div> 
+          </div>
         </div>
       </div>
     </div>
@@ -258,10 +244,8 @@
 
   <!-- Resultado del análisis -->
   {% if feedback %}
-    {# solo marca que NO estamos en modo impresión #}
-    {# Ancla #}
-    <h3 id="ai-analysis" class="visually-hidden">Análisis</h3>
-    
+    <h3 id="ai-analysis" class="visually-hidden">{{ t('analysis.title') }}</h3>
+
     {% if just_analyzed %}
       <script>
         window.addEventListener('load', function(){
@@ -270,33 +254,32 @@
         });
       </script>
     {% endif %}
-    </div> 
-    
-    <!-- Analisis -->
-    {% if feedback %}
-      <div class="row g-4">
-        <div class="col-12">
-          {# si usas el partial #}
-          {% set print_mode = False %}
-          {% include "_analysis_block.html" %}
-        </div>
-      </div>
-    {% endif %}
 
+    <div class="row g-4">
+      <div class="col-12">
+        {% set print_mode = False %}
+        {% include "_analysis_block.html" %}
+      </div>
+    </div>
   {% endif %}
 
   <!-- Sugerencias (solo con sesión) -->
   {% if session.get('user_email') %}
     <div class="card mt-4 p-4 shadow-sm">
-      <h4 class="mb-3"><i class="bi bi-chat-text"></i> ¿Tienes sugerencias para mejorar?</h4>
+      <h4 class="mb-3">
+        <i class="bi bi-chat-text"></i>
+        {{ is_en and "Do you have suggestions to improve?" or "¿Tienes sugerencias para mejorar?" }}
+      </h4>
       <form method="post" action="{{ url_for('main.leave_comment') }}">
         <div class="mb-2">
-          <label class="form-label">Tu comentario</label>
+          <label class="form-label">{{ is_en and "Your comment" or "Tu comentario" }}</label>
           <textarea class="form-control" name="comment" rows="3" maxlength="2000" required></textarea>
         </div>
         <div class="d-flex justify-content-between align-items-center">
-          <div class="small text-muted">Gracias por ayudar a mejorar el servicio.</div>
-          <button class="btn btn-outline-primary"><i class="bi bi-send"></i> Enviar</button>
+          <div class="small text-muted">{{ is_en and "Thanks for helping improve the service." or "Gracias por ayudar a mejorar el servicio." }}</div>
+          <button class="btn btn-outline-primary">
+            <i class="bi bi-send"></i> {{ is_en and "Send" or "Enviar" }}
+          </button>
         </div>
       </form>
     </div>
@@ -304,34 +287,50 @@
 {% endblock %}
 
 {% block extra_js %}
+<script id="page-config" type="application/json">
+{{ {
+  "is_en": is_en,                                # bool
+  "max_mb": (max_mb or 2),                      # número
+  "txt_bad_ext": t('err.bad_ext'),
+  "txt_too_big": t('err.too_big', max_mb=max_mb or 2),
+  "txt_need_file": t('err.no_file')
+} | tojson }}
+</script>
+
 <script>
 (function () {
-  /* ===========================
-   * 1) DONUTS (animación + color)
-   * =========================== */
+  // === Carga de configuración desde JSON embebido ===
+  const cfgEl = document.getElementById('page-config');
+  const CFG = cfgEl
+    ? JSON.parse(cfgEl.textContent)
+    : { is_en:false, max_mb:2,
+        txt_bad_ext:'Formato no permitido. Solo PDF o DOCX.',
+        txt_too_big:'El archivo supera el límite.',
+        txt_need_file:'Por favor, selecciona un archivo.' };
+
+  const IS_EN       = !!CFG.is_en;
+  const MAX_MB      = Number(CFG.max_mb) || 2;
+  const TXT_BAD_EXT = CFG.txt_bad_ext || 'Formato no permitido. Solo PDF o DOCX.';
+  const TXT_TOO_BIG = CFG.txt_too_big || ('El archivo supera el límite de ' + MAX_MB + ' MB.');
+  const TXT_NEED_FILE = CFG.txt_need_file || 'Por favor, selecciona un archivo.';
+  
+  /* ===== 1) DONUTS ===== */
   function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
   function ind(el){ return el.querySelector('.donut-indicator'); }
   function lbl(el){ return el.querySelector('.donut-label'); }
-
   function setColor(el, score){
     const color = (score >= 75) ? '#28a745' : (score >= 50 ? '#ffc107' : '#dc3545');
     ind(el).style.setProperty('--donut-color', color);
   }
   function setDash(el, val){ ind(el).style.setProperty('--dash', String(val)); }
   function setLabel(el, val){ const l = lbl(el); if (l) l.textContent = Math.round(val) + '%'; }
-
   function animateDonut(container, target, duration){
     const ioRed = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const to = Math.max(0, Math.min(100, parseInt(target || 0, 10)));
     if (!ind(container)) return;
     setColor(container, to);
-
-    if (ioRed || duration <= 0) {
-      setDash(container, to); setLabel(container, to); return;
-    }
-    const start = performance.now();
-    setDash(container, 0); setLabel(container, 0);
-
+    if (ioRed || duration <= 0) { setDash(container, to); setLabel(container, to); return; }
+    const start = performance.now(); setDash(container, 0); setLabel(container, 0);
     function tick(now){
       const t = Math.min(1, (now - start) / duration);
       const val = to * easeOutCubic(t);
@@ -340,11 +339,9 @@
     }
     requestAnimationFrame(tick);
   }
-
   function initDonuts(){
     const donuts = document.querySelectorAll('.donut');
     if (!donuts.length) return;
-
     if (!('IntersectionObserver' in window)) {
       donuts.forEach(d => animateDonut(d, d.getAttribute('data-score') || 0, 900));
       return;
@@ -357,7 +354,6 @@
         io.unobserve(el);
       });
     }, { threshold: 0.25 });
-
     donuts.forEach(d => io.observe(d));
   }
 
@@ -370,7 +366,6 @@
     const fn = document.getElementById('file-name');
     if (!dz || !fi || !fn) return;
 
-    const MAX_MB = 2;
     const MAX_BYTES = MAX_MB * 1024 * 1024;
 
     const humanKB = bytes => Math.max(1, Math.round((bytes || 0) / 1024)) + ' KB';
@@ -383,8 +378,9 @@
     }
 
     function showOK(file) {
-      fn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> ' +
-                     'Archivo: ' + file.name + ' (' + humanKB(file.size) + ')';
+      fn.innerHTML =
+        '<i class="bi bi-check-circle-fill me-1"></i> ' +
+        (IS_EN ? 'File: ' : 'Archivo: ') + file.name + ' (' + humanKB(file.size) + ')';
       fn.classList.remove('text-secondary');
       fn.classList.add('text-success');
       dz.classList.add('ok','border-success','bg-success-subtle');
@@ -392,8 +388,8 @@
 
     function validar(file) {
       if (!file) return false;
-      if (!/\.(pdf|docx)$/i.test(file.name)) { alert('Formato no permitido. Solo PDF o DOCX.'); return false; }
-      if (file.size > MAX_BYTES) { alert('El archivo supera el límite de ' + MAX_MB + ' MB.'); return false; }
+      if (!/\.(pdf|docx)$/i.test(file.name)) { alert(TXT_BAD_EXT); return false; }
+      if (file.size > MAX_BYTES) { alert(TXT_TOO_BIG); return false; }
       return true;
     }
 
@@ -401,16 +397,12 @@
     function setFromDrop(file){
       if (!file) { fi.value = ''; clearVisual(); fi.dispatchEvent(new Event('change', {bubbles:true})); return; }
       if (!validar(file)) { fi.value = ''; clearVisual(); fi.dispatchEvent(new Event('change', {bubbles:true})); return; }
-
       try {
         const dt = new DataTransfer();
         dt.items.add(file);
         fi.files = dt.files; // puede fallar en navegadores viejos
-      } catch(_) {
-        // fallback: no podemos asignar files; al menos mostramos OK visual
-      }
+      } catch(_) {}
       showOK(file);
-      // avisamos a cualquier listener (badges)
       fi.dispatchEvent(new Event('change', {bubbles:true}));
     }
 
@@ -446,7 +438,7 @@
       frm.addEventListener('submit', function(e){
         if (!fi.files || fi.files.length === 0) {
           e.preventDefault();
-          alert('Por favor, selecciona un archivo PDF o DOCX.');
+          alert(TXT_NEED_FILE);
         }
       });
     }
@@ -457,23 +449,25 @@
       btnClearFile.addEventListener('click', function(){
         fi.value = '';
         clearVisual();
-        // importante: notificar para apagar el badge 1 y 3
         fi.dispatchEvent(new Event('change', {bubbles:true}));
       });
     }
   }
 
-  /* ==============================
-   * 3) Tooltips (Bootstrap)
-   * ============================== */
+  // Exporta/llama en tu boot
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initUploader);
+  } else {
+    initUploader();
+  }
+
+  /* ===== 3) Tooltips ===== */
   function initTooltips(){
     const triggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     triggers.forEach(el => { try { new bootstrap.Tooltip(el, { container: 'body', trigger: 'hover focus' }); } catch(_){} });
   }
 
-  /* ======================================================
-   * 4) JD: localStorage + limpiar + contador + eventos
-   * ====================================================== */
+  /* ===== 4) JD localStorage + limpiar + contador ===== */
   function initJobDesc(){
     const ta = document.getElementById('jobdesc');
     const btnClear = document.getElementById('btn-clear-jobdesc');
@@ -481,41 +475,29 @@
     if (!ta) return;
 
     const KEY = 'cvms_jobdesc';
-
-    // inicializa desde localStorage si el servidor no trajo contenido
     if (!ta.value.trim()) {
       const saved = localStorage.getItem(KEY);
       if (saved) ta.value = saved.slice(0, 4000);
     }
-
     function paintCount(){ if (counter) counter.textContent = ta.value.length + '/4000'; }
-
-    // guarda en tiempo real
     ta.addEventListener('input', function(){
       if (ta.value.length > 4000) ta.value = ta.value.slice(0, 4000);
       try { localStorage.setItem(KEY, ta.value); } catch(e) {}
       paintCount();
-      // evento custom para otros módulos
       ta.dispatchEvent(new Event('cvms-jd-change', {bubbles:true}));
     });
-
-    // contador inicial + evento para badges (por si vino del localStorage)
     paintCount();
     ta.dispatchEvent(new Event('cvms-jd-change', {bubbles:true}));
 
-    // botón limpiar
     if (btnClear) {
       btnClear.addEventListener('click', function(){
         ta.value = '';
         paintCount();
         try { localStorage.removeItem(KEY); } catch(e) {}
-        // notificar a badges para apagar el paso 2 y 3
         ta.dispatchEvent(new Event('input', {bubbles:true}));
         ta.focus();
       });
     }
-
-    // asegura persistencia justo antes del submit
     const frm = ta.closest('form');
     if (frm) {
       frm.addEventListener('submit', function(){
@@ -524,17 +506,13 @@
     }
   }
 
-  /* ==========================
-   * 5) Badges ① ② ③
-   * ========================== */
+  /* ===== 5) Badges 1-2-3 ===== */
   function initBadges(){
     const fi = document.getElementById('file-input');
     const ta = document.getElementById('jobdesc');
-
     const b1 = document.getElementById('badge-step1');
     const b2 = document.getElementById('badge-step2');
     const b3 = document.getElementById('badge-step3');
-
     if (!fi || !ta || !b1 || !b2 || !b3) return;
 
     const hasFile = () => !!(fi.files && fi.files.length > 0);
@@ -543,57 +521,40 @@
     function paint(){
       b1.classList.toggle('is-on', hasFile());
       b2.classList.toggle('is-on', hasJD());
-
       const ready = hasFile() && hasJD();
       b3.classList.toggle('is-ready', ready);
       if (!ready) b3.classList.remove('is-ready');
     }
-
     fi.addEventListener('change', paint);
     ta.addEventListener('input', paint);
     ta.addEventListener('cvms-jd-change', paint);
-
-    // primera pintura ya con JD restaurado
     paint();
   }
 
-  /* ===========
-   * BOOT
-   * =========== */
+  /* BOOT */
   function boot(){
     initDonuts();
     initUploader();
     initTooltips();
     initJobDesc();
-    initBadges(); // <- ahora va después de initJobDesc
+    initBadges();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
-
 })();
 
-// Scroll automático al análisis si venimos de un submit
+/* Scroll automático al análisis (compensa navbar fija) */
 (function(){
-  // Solo si venimos de un análisis recién hecho
   var el = document.getElementById('ai-analysis');
   if (!el) return;
-
-  // Si el usuario prefiere menos animación:
   var prefersReduced = false;
-  try {
-    prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  } catch(e){}
-
-  // Compensar navbar fija (ajustá 80 si tu navbar es más alta/baja)
+  try { prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){}
   var NAV_OFFSET = 80;
   var y = el.getBoundingClientRect().top + window.pageYOffset - NAV_OFFSET;
-
-  window.scrollTo({
-    top: y,
-    behavior: prefersReduced ? 'auto' : 'smooth'
-  });
+  window.scrollTo({ top: y, behavior: prefersReduced ? 'auto' : 'smooth' });
 })();
 
+/* Selector de modelo para Admin */
 function changeModel(value) {
   fetch("{{ url_for('main.set_model') }}", {
     method: "POST",
@@ -601,18 +562,8 @@ function changeModel(value) {
     body: JSON.stringify({model: value})
   })
   .then(r => r.json())
-  .then(data => {
-    console.log("Modelo cambiado a:", data.model);
-  })
+  .then(data => { console.log("Modelo cambiado a:", data.model); })
   .catch(err => console.error("Error cambiando modelo:", err));
 }
 </script>
 {% endblock %}
-
-
-
-
-
-
-
-
