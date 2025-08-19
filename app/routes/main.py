@@ -21,6 +21,10 @@ from ..i18n import tr   # <-- i18n helper
 bp = Blueprint("main", __name__)
 MAX_MB = 2
 
+def _is_admin():
+    email = session.get("user_email")
+    admin = current_app.config.get("ADMIN_EMAIL")
+    return bool(admin and email and email.lower() == admin.lower())
 
 @bp.route("/favicon.ico")
 def favicon():
@@ -322,12 +326,6 @@ def leave_comment():
     db.session.commit()
 
     return redirect(url_for('main.index'))
-
-
-def _is_admin():
-    email = session.get("user_email")
-    admin = current_app.config.get("ADMIN_EMAIL")
-    return bool(admin and email and email.lower() == admin.lower())
 
 
 @bp.route("/set_model", methods=["POST"])

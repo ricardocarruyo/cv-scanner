@@ -289,8 +289,8 @@
 {% block extra_js %}
 <script id="page-config" type="application/json">
 {{ {
-  "is_en": is_en,                                # bool
-  "max_mb": (max_mb or 2),                      # número
+  "is_en": is_en,  
+  "max_mb": (max_mb or 2),
   "txt_bad_ext": t('err.bad_ext'),
   "txt_too_big": t('err.too_big', max_mb=max_mb or 2),
   "txt_need_file": t('err.no_file')
