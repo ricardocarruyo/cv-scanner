@@ -135,26 +135,26 @@
 
   {# ===== Lineamientos ===== #}
   <hr class="my-4">
-  <h5 class="mb-2">{{ t('guide.title') }}</h5>
+  <h5 class="mb-2">{{ t('lineamientos.title') }}</h5>
   <ul class="small mb-2">
-    <li>
-      {{ t('guide.bullet_format') | format(max_mb=(max_mb or 2)) }}
-    </li>
-    <li>{{ t('guide.bullet_avoid') }}</li>
-    <li>{{ t('guide.bullet_fonts') }}</li>
-
+    {# "panel.guidelines.items" viene como string con ';;' entre ítems #}
+    {% set gl_items = t('panel.guidelines.items', max_mb=(max_mb or 2)) %}
+    {% for it in gl_items.split(';;') %}
+      <li>{{ it|safe }}</li>
+    {% endfor %}
     {% if not print_mode %}
       <li>
         <a class="link-primary"
-           href="{% if is_en %}{{ url_for('static', filename='docs/ATS_CV_Template_English.docx') }}{% else %}{{ url_for('static', filename='docs/Plantilla_CV_ATS_STAR.docx') }}{% endif %}"
-           download>
-          {{ t('guide.download_template') }}
+          href="{{ url_for('static', filename=('docs/ATS_CV_Template_English.docx' if (lang=='en') else 'docs/Plantilla_CV_ATS_STAR.docx')) }}"
+          download>
+          {{ t('panel.guidelines.download') }}
         </a>
       </li>
     {% else %}
-      <li>{{ t('guide.get_template_site') }}</li>
+      <li>{{ t('panel.guidelines.download') }}</li>
     {% endif %}
   </ul>
+
 
   <div class="row">
     <div class="col-md-6">

@@ -249,7 +249,6 @@ def index():
                 "index.html",
                 # i18n helpers
                 t=T, is_en=is_en, lang=lang,
-
                 email=email, name=name, picture=picture,
                 feedback=feedback_html,
                 disclaimer=disclaimer,
