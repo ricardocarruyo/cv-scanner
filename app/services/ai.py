@@ -1,4 +1,5 @@
 import re, langdetect, markdown, bleach
+from uuid import uuid4
 from ..extensions import openai_client, gemini_client
 
 # -------------------------------
@@ -61,31 +62,32 @@ def disclaimer_text(idioma: str) -> str:
     )
 
 # -------------------------------
-# Prompt personal y humano
+# Prompt builder (neutro / sin nombre)
 # -------------------------------
 
-def _build_prompt(cv_text: str, job_desc: str, idioma: str, nombre: str | None) -> str:
+def _build_prompt(cv_text: str, job_desc: str, idioma: str, nombre: str | None = None) -> str:
     """
-    Crea un prompt para que el modelo actúe como reclutador + coach, con tono profesional y humano.
-    Requisito clave: en la PRIMERA LÍNEA debe escribir SOLO el porcentaje (p. ej., '75%')
-    para facilitar la extracción del score y evitar 'Puntuación de coincidencia:'.
+    Crea un prompt NEUTRO (sin nombres propios). Primera línea = solo 'NN%'.
+    Encabezados genéricos para evitar que el modelo copie nombres previos.
     """
     idioma_respuesta = "Spanish" if idioma == "es" else "English"
-    # Nombre seguro
-    display_name = nombre.strip() if nombre else ("candidato/a" if idioma == "es" else "candidate")
+
+    # recortes defensivos por tokens (ajusta si quieres)
+    cv_text = (cv_text or "")[:200_000]
+    job_desc = (job_desc or "")[:40_000]
 
     if idioma == "es":
         instruccion = f"""
-Actúa como un reclutador senior y coach de carrera. Analiza el CV de {display_name} en relación con la descripción del puesto.
+Actúa como reclutador experto y coach de carrera. Analiza el CV en relación con la descripción del puesto.
 Responde en **{idioma_respuesta}**, con un tono profesional, humano y constructivo.
+**No uses ningún nombre propio** ni encabezados con “para X” o similares. Usa términos neutros como “candidato” o “candidate”.
 
 REQUISITO IMPORTANTE:
 - En la **primera línea**, escribe **solo** el porcentaje de coincidencia como número con '%'. Ejemplo: `75%`. No agregues palabras en esa línea.
 
-Estructura del resto del contenido:
-### Análisis para {display_name}
+Después, estructura el contenido así (sin incluir nombres):
+### Análisis
 **Puntos fuertes (3–5):**
-- …
 - …
 
 **Áreas de mejora (3–5):**
@@ -101,16 +103,16 @@ Evita repeticiones innecesarias y cuida la claridad.
 """
     else:
         instruccion = f"""
-Act as a senior recruiter and career coach. Analyze {display_name}'s resume against the job description.
+Act as an expert recruiter and career coach. Analyze the resume against the job description.
 Reply in **{idioma_respuesta}** with a professional, human and constructive tone.
+**Do not use any personal names** and do not write headings like “for X”. Use neutral wording like “candidate”.
 
 IMPORTANT REQUIREMENT:
 - On the **first line**, write **only** the match percentage as a number with '%'. Example: `75%`. Do not add words on that line.
 
-Structure for the rest:
-### Analysis for {display_name}
+Then structure the content like this (no names):
+### Analysis
 **Strengths (3–5):**
-- …
 - …
 
 **Areas to improve (3–5):**
@@ -133,44 +135,51 @@ Avoid unnecessary repetition and keep it clear.
     return prompt
 
 # -------------------------------
-# LLMs
+# LLMs (stateless por request)
 # -------------------------------
 
 def analizar_openai(cv_text, job_desc, nombre: str | None = None):
     """
-    Devuelve (texto_markdown, error). El markdown inicia con 'NN%' en la primera línea,
-    seguido del análisis personal (reclutador + coach).
+    Devuelve (texto_markdown, error). El markdown inicia con 'NN%' en la primera línea.
+    Stateless: sin threads compartidos ni historial previo.
     """
     idioma = detectar_idioma((cv_text or "") + " " + (job_desc or ""))
-    prompt = _build_prompt(cv_text, job_desc, idioma, nombre)
+    prompt = _build_prompt(cv_text, job_desc, idioma, nombre=None)  # forzamos neutro
 
     cli = openai_client()
     if not cli:
         return None, "OpenAI no configurado"
 
     try:
+        # Cada request es independiente; no pasamos thread_id ni history
         resp = cli.responses.create(
             model="gpt-4o",
             input=prompt,
             temperature=0.2,
+            # Cabecera opcional para evitar caches de gateway (si tu SDK la soporta)
+            extra_headers={"x-nonce": str(uuid4())}
         )
-        return resp.output_text, None
+        return getattr(resp, "output_text", None), None
     except Exception as e:
         return None, str(e)
 
 def analizar_gemini(cv_text, job_desc, nombre: str | None = None):
     """
     Devuelve texto markdown con el mismo formato que OpenAI.
+    Stateless: no reusamos chat/historial entre llamadas.
     """
     idioma = detectar_idioma((cv_text or "") + " " + (job_desc or ""))
-    prompt = _build_prompt(cv_text, job_desc, idioma, nombre)
+    prompt = _build_prompt(cv_text, job_desc, idioma, nombre=None)  # forzamos neutro
 
-    g = gemini_client()
-    if not g:
+    try:
+        g = gemini_client()
+        if not g:
+            return None
+        model = g.GenerativeModel("gemini-1.5-flash")
+        out = model.generate_content(prompt)
+        return getattr(out, "text", None)
+    except Exception:
         return None
-    model = g.GenerativeModel("gemini-1.5-flash")
-    out = model.generate_content(prompt)
-    return out.text
 
 # -------------------------------
 # Sanitizado a HTML seguro

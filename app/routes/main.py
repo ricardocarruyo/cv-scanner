@@ -17,6 +17,7 @@ from ..services.ai import (
 )
 from ..services.ats import evaluate_ats_compliance
 from ..i18n import tr   # <-- i18n helper
+import re
 
 bp = Blueprint("main", __name__)
 MAX_MB = 2
@@ -155,7 +156,7 @@ def index():
                 selected_model = "auto"
 
             if selected_model == "gemini":
-                fb_gemini = analizar_gemini(cv_text, jobdesc, nombre=nombre_persona)
+                fb_gemini = analizar_gemini(cv_text, jobdesc, nombre=None)
                 if fb_gemini:
                     feedback_text = fb_gemini
                     model_vendor  = "gemini"
@@ -163,7 +164,7 @@ def index():
                     model_used    = 2
 
             elif selected_model == "openai":
-                fb_openai, oi_error = analizar_openai(cv_text, jobdesc, nombre=nombre_persona)
+                fb_openai, oi_error = analizar_openai(cv_text, jobdesc, nombre=None)
                 if fb_openai:
                     feedback_text = fb_openai
                     model_vendor  = "openai"
@@ -171,14 +172,14 @@ def index():
                     model_used    = 1
 
             else:  # auto
-                fb_openai, oi_error = analizar_openai(cv_text, jobdesc, nombre=nombre_persona)
+                fb_openai, oi_error = analizar_openai(cv_text, jobdesc, nombre=None)
                 if fb_openai:
                     feedback_text = fb_openai
                     model_vendor  = "openai"
                     model_name    = "gpt-4o"
                     model_used    = 1
                 else:
-                    fb_gemini = analizar_gemini(cv_text, jobdesc, nombre=nombre_persona)
+                    fb_gemini = analizar_gemini(cv_text, jobdesc, nombre=None)
                     if fb_gemini:
                         feedback_text = fb_gemini
                         model_vendor  = "gemini"
@@ -198,10 +199,12 @@ def index():
             if feedback_text:
                 lines = feedback_text.splitlines()
                 if lines:
-                    import re
                     first = lines[0].strip()
                     if re.fullmatch(r"\d{1,3}\s*%", first):
-                        feedback_text = "\n".join(lines[1:]).lstrip()
+                        lines = lines[1:]
+                    elif re.match(r"^(Analysis for|Análisis (para|de))\b", first, re.IGNORECASE):
+                        lines = lines[1:]
+                feedback_text = "\n".join(lines).lstrip()
 
             feedback_html = sanitize_markdown(feedback_text) if feedback_text else None
 
