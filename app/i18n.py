@@ -65,8 +65,8 @@ STRINGS = {
 
         # Nuevas claves análisis (modelos, descarga, guía)
         "ai.title": "Análisis de la IA",
-        "ai.model_1": "OpenAI",
-        "ai.model_2": "Gemini",
+        "ai.model_1": "Model 1",
+        "ai.model_2": "Model 2",
         "ai.download_print": "Versión imprimible",
         "ai.match_jd": "Coincidencia con Job Description",
         "ai.match_ats": "Coincidencia con Plantilla CV ATS",
@@ -82,7 +82,7 @@ STRINGS = {
         "sec.skills": "Habilidades",
         "sec.languages": "Idiomas",
 
-        # Guía y equivalencias
+        # Guía y equivalencias es
         "guide.title": "Lineamientos y equivalencias ATS",
         "guide.bullet_format": "Formato: PDF o DOCX (máx. {max_mb} MB)",
         "guide.bullet_avoid": "Evita imágenes, logos, tablas y columnas",
@@ -90,11 +90,12 @@ STRINGS = {
         "guide.download_template": "Descargar Plantilla CV ATS",
         "guide.get_template_site": "Descarga la plantilla desde el sitio oficial",
         "guide.sections_equiv_title": "Secciones equivalentes aceptadas",
-        "guide.sec_profile_equiv": "Resumen, About me, Extracto",
-        "guide.sec_experience_equiv": "Background, Career history",
-        "guide.sec_education_equiv": "Academic background, Studies",
-        "guide.sec_skills_equiv": "Competencias, Technical skills",
-        "guide.sec_languages_equiv": "Idiomas, Languages",
+
+        "guide.sec_profile_equiv": "Resumen, Resumen Profesional, Objetivos, Objectivo",
+        "guide.sec_experience_equiv": "Professional Experience, Experience, Work Experience, Employment History, Career History",
+        "guide.sec_education_equiv": "Formación académica, Educación",
+        "guide.sec_skills_equiv": "Habilidades, Competencias",
+        "guide.sec_languages_equiv": "Idiomas, Idioma, Lenguas",
 
         # STAR
         "guide.star_title": "Formato STAR para logros",
@@ -108,6 +109,14 @@ STRINGS = {
         "common.yes": "Sí",
         "common.no": "No",
         "common.undetermined": "Indeterminado",
+
+        # Print
+        "print.title": "Informe de Análisis – CV Match Scanner",
+        "print.header": "Informe de Análisis",
+        "print.date": "Fecha",
+        "print.email": "Correo",
+        "print.file": "Archivo",
+        "print.print_button": "Imprimir / Guardar PDF"
     },
     "en": {
         "app.title": "CV Match Scanner",
@@ -168,8 +177,8 @@ STRINGS = {
 
         # New analysis keys
         "ai.title": "AI Analysis",
-        "ai.model_1": "OpenAI",
-        "ai.model_2": "Gemini",
+        "ai.model_1": "Model 1",
+        "ai.model_2": "Model 2",
         "ai.download_print": "Printable version",
         "ai.match_jd": "Match with Job Description",
         "ai.match_ats": "Match with ATS CV Template",
@@ -185,7 +194,7 @@ STRINGS = {
         "sec.skills": "Skills",
         "sec.languages": "Languages",
 
-        # Guidelines
+        # Guidelines en
         "guide.title": "Guidelines and ATS equivalences",
         "guide.bullet_format": "Format: PDF or DOCX (max {max_mb} MB)",
         "guide.bullet_avoid": "Avoid images, logos, tables and columns",
@@ -193,11 +202,12 @@ STRINGS = {
         "guide.download_template": "Download ATS CV Template",
         "guide.get_template_site": "Get the template from the official site",
         "guide.sections_equiv_title": "Section titles accepted",
-        "guide.sec_profile_equiv": "Summary, About me, Extract",
-        "guide.sec_experience_equiv": "Background, Career history",
-        "guide.sec_education_equiv": "Academic background, Studies",
-        "guide.sec_skills_equiv": "Competencies, Technical skills",
-        "guide.sec_languages_equiv": "Languages, Idioms",
+
+        "guide.sec_profile_equiv": "Summary, Professional Summary, Profile, Objective",
+        "guide.sec_experience_equiv": "Professional Experience, Experience, Work Experience, Employment History, Career History",
+        "guide.sec_education_equiv": "Academic background, Education",
+        "guide.sec_skills_equiv": "Skills, Technical skills, Hard Skills, Soft Skills",
+        "guide.sec_languages_equiv": "Languages",
 
         # STAR
         "guide.star_title": "STAR format for achievements",
@@ -211,6 +221,14 @@ STRINGS = {
         "common.yes": "Yes",
         "common.no": "No",
         "common.undetermined": "Undetermined",
+
+        # Print
+        "print.title": "Analysis Report – CV Match Scanner",
+        "print.header": "Analysis Report",
+        "print.date": "Date",
+        "print.email": "Email",
+        "print.file": "File",
+        "print.print_button": "Print / Save PDF"
 
     }
 }

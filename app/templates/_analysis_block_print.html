@@ -1,6 +1,12 @@
 {# templates/_analysis_block_print.html #}
-{# Requiere: score_jd, score_ats, feedback (HTML ya sanitizado), 
-   disclaimer (opcional), ats_details (opcional), max_mb (opcional) #}
+{# Requiere en el contexto: 
+   - t (función de traducción), lang (opcional)
+   - score_jd (0–100), score_ats (0–100)
+   - feedback (HTML ya sanitizado)
+   - disclaimer (opcional)
+   - ats_details (opcional)
+   - max_mb (opcional, default 2)
+#}
 
 {% macro donut_static(score, label) %}
   {% set s = (score or 0)|int %}
@@ -37,13 +43,13 @@
 
 <div class="card p-4 shadow-sm mt-3">
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <h3 class="mb-0">Análisis de la IA</h3>
+    <h3 class="mb-0">{{ t('analysis.title') }}</h3>
   </div>
 
   <!-- Donas estáticas -->
   <div class="d-flex flex-wrap gap-4 justify-content-evenly align-items-center">
-    {{ donut_static(score_jd, 'Coincidencia con Job Description') }}
-    {{ donut_static(score_ats, 'Coincidencia con Plantilla CV ATS') }}
+    {{ donut_static(score_jd, t('analysis.donut.jd')) }}
+    {{ donut_static(score_ats, t('analysis.donut.ats')) }}
   </div>
 
   {% if disclaimer %}
@@ -52,28 +58,41 @@
 
   {% if ats_details %}
     <div class="card mt-3 mb-2 p-3">
-      <h6 class="fw-bold mb-3">Checklist ATS detectado</h6>
+      <h6 class="fw-bold mb-3">{{ t('analysis.checklist.title') }}</h6>
       <div class="row gy-2 gx-4">
+        <!-- Imágenes -->
         <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
           {% set ok = not ats_details.has_images %}
           <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
-          <span>Imágenes en el CV: <strong>{{ 'No' if ok else 'Sí' }}</strong></span>
+          <span>{{ t('analysis.checklist.images') }}: 
+            <strong>{{ t('no') if ok else t('yes') }}</strong>
+          </span>
         </div>
+        <!-- Tablas / Columnas -->
         <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
           {% set ok = not ats_details.has_tables_or_columns %}
           <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
-          <span>Tablas o columnas: <strong>{{ 'No' if ok else 'Sí' }}</strong></span>
+          <span>{{ t('analysis.checklist.tables') }}: 
+            <strong>{{ t('no') if ok else t('yes') }}</strong>
+          </span>
         </div>
+        <!-- Tipografía segura -->
         <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
           {% if ats_details.safe_typography is none %}
             <i class="bi bi-dash-circle-fill text-secondary me-2"></i>
-            <span>Tipografía segura: <strong>Indeterminado</strong></span>
+            <span>{{ t('analysis.checklist.fontsafe') }}: 
+              <strong>{{ t('indeterminate') }}</strong>
+            </span>
           {% else %}
             {% set ok = ats_details.safe_typography %}
             <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
-            <span>Tipografía segura: <strong>{{ 'Sí' if ok else 'No' }}</strong></span>
+            <span>{{ t('analysis.checklist.fontsafe') }}: 
+              <strong>{{ t('yes') if ok else t('no') }}</strong>
+            </span>
           {% endif %}
         </div>
+
+        {# Secciones presentes #}
         {% set present = ats_details.sections_present or [] %}
         {% for label in ['perfil profesional','experiencia laboral','educación','habilidades','idiomas'] %}
           <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
@@ -86,21 +105,24 @@
     </div>
   {% endif %}
 
+  <!-- Feedback -->
   <div class="mt-3">
     {{ feedback|safe }}
   </div>
 
+  <!-- Lineamientos -->
   <hr class="my-4">
-  <h5 class="mb-2">Lineamientos y equivalencias ATS</h5>
+  <h5 class="mb-2">{{ t('lineamientos.title') }}</h5>
   <ul class="small mb-2">
-    <li>Formato: <strong>PDF o DOCX</strong>. Idioma: <strong>Español o Inglés</strong>. Texto legible (no escaneado). Máx. {{ (max_mb or 2) }} MB.</li>
-    <li>Evita imágenes, tablas y columnas; usa encabezados simples y bullets estándar.</li>
-    <li>Tipografías seguras: Arial, Calibri, Helvetica, Verdana.</li>
-    <li>Descarga la plantilla desde el sitio: Plantilla CV ATS.</li>
+    <li>{{ t('guide.bullet_format', max_mb=(max_mb or 2)) }}</li>
+    <li>{{ t('guide.bullet_avoid') }}</li>
+    <li>{{ t('guide.bullet_fonts') }}</li>
+    <li>{{ t('guide.get_template_site') }}</li>
   </ul>
+
   <div class="row">
     <div class="col-md-6">
-      <div class="fw-semibold small">Secciones equivalentes aceptadas</div>
+      <div class="fw-semibold small">{{ t('guide.sections_equiv_title') }}</div>
       <ul class="small mb-3">
         <li><strong>Perfil profesional</strong> → Resumen profesional, Resumen, Objetivo(s), <em>Summary</em>, <em>Professional Summary</em>, <em>Profile</em>, <em>Objective</em>.</li>
         <li><strong>Experiencia laboral</strong> → Experiencia profesional, Experiencia, <em>Experience</em>, <em>Professional Experience</em>, <em>Work Experience</em>, <em>Employment History</em>, <em>Career History</em>.</li>
@@ -110,13 +132,13 @@
       </ul>
     </div>
     <div class="col-md-6">
-      <div class="fw-semibold small">Formato STAR para tu experiencia</div>
-      <p class="small mb-1">Redacta cada logro con STAR para mejorar la lectura por ATS y por reclutadores:</p>
+      <div class="fw-semibold small">{{ t('star.title') }}</div>
+      <p class="small mb-1">{{ t('star.help')|safe }}</p>
       <ul class="small mb-0">
-        <li><strong>S</strong>ituación: contexto o problema.</li>
-        <li><strong>T</strong>area: objetivo o responsabilidad.</li>
-        <li><strong>A</strong>cción: qué hiciste específicamente.</li>
-        <li><strong>R</strong>esultado: impacto cuantificable (% mejora, tiempos, costos, calidad).</li>
+        <li>{{ t('star.s')|safe }}</li>
+        <li>{{ t('star.t')|safe }}</li>
+        <li>{{ t('star.a')|safe }}</li>
+        <li>{{ t('star.r')|safe }}</li>
       </ul>
     </div>
   </div>
