@@ -65,66 +65,74 @@ def disclaimer_text(idioma: str) -> str:
 # Prompt builder (neutro / sin nombre)
 # -------------------------------
 
-def _build_prompt(cv_text: str, job_desc: str, idioma: str, nombre: str | None = None) -> str:
+def _build_prompt(cv_text: str, job_desc: str, idioma: str, nombre: str | None) -> str:
     """
-    Crea un prompt NEUTRO (sin nombres propios). Primera línea = solo 'NN%'.
-    Encabezados genéricos para evitar que el modelo copie nombres previos.
+    Prompt mejorado:
+    - Actúa como reclutador experto, coach de carrera y evaluador ATS.
+    - Compara CV vs Job Description y CV vs filtros ATS.
+    - Devuelve análisis en formato FODA.
+    - Sin nombres propios ni encabezados personalizados.
+    - Primera línea: solo el porcentaje (ej: '75%').
     """
-    idioma_respuesta = "Spanish" if idioma == "es" else "English"
 
-    # recortes defensivos por tokens (ajusta si quieres)
-    cv_text = (cv_text or "")[:200_000]
-    job_desc = (job_desc or "")[:40_000]
+    idioma_respuesta = "Spanish" if idioma == "es" else "English"
+    candidato = "candidato" if idioma == "es" else "candidate"
 
     if idioma == "es":
         instruccion = f"""
-Actúa como reclutador experto y coach de carrera. Analiza el CV en relación con la descripción del puesto.
-Responde en **{idioma_respuesta}**, con un tono profesional, humano y constructivo.
-**No uses ningún nombre propio** ni encabezados con “para X” o similares. Usa términos neutros como “candidato” o “candidate”.
+Eres un reclutador experto, coach de carrera y evaluador ATS. 
+Analiza el CV del {candidato} comparándolo tanto con la descripción del puesto como con los filtros de sistemas ATS.
+Responde en **{idioma_respuesta}** con un tono profesional, humano y constructivo.
 
 REQUISITO IMPORTANTE:
 - En la **primera línea**, escribe **solo** el porcentaje de coincidencia como número con '%'. Ejemplo: `75%`. No agregues palabras en esa línea.
 
-Después, estructura el contenido así (sin incluir nombres):
-### Análisis
-**Puntos fuertes (3–5):**
+El resto del análisis debe estar estructurado como un **FODA**:
+
+**Fortalezas:**
 - …
 
-**Áreas de mejora (3–5):**
+**Oportunidades:**
 - …
 
-**Recomendaciones específicas (bullets accionables):**
+**Debilidades:**
 - …
 
-**Comentario final (breve y alentador):**
-Una línea final motivadora.
+**Amenazas:**
+- …
 
-Evita repeticiones innecesarias y cuida la claridad.
+**Comentario final:**
+Una línea motivadora breve y clara.
+
+Evita repeticiones innecesarias y mantén un estilo conciso y profesional.
 """
     else:
         instruccion = f"""
-Act as an expert recruiter and career coach. Analyze the resume against the job description.
-Reply in **{idioma_respuesta}** with a professional, human and constructive tone.
-**Do not use any personal names** and do not write headings like “for X”. Use neutral wording like “candidate”.
+You are an expert recruiter, career coach, and ATS evaluator. 
+Analyze the {candidato}'s resume by comparing it both against the job description and against ATS filters.
+Reply in **{idioma_respuesta}** with a professional, human, and constructive tone.
 
 IMPORTANT REQUIREMENT:
 - On the **first line**, write **only** the match percentage as a number with '%'. Example: `75%`. Do not add words on that line.
 
-Then structure the content like this (no names):
-### Analysis
-**Strengths (3–5):**
+The rest of the analysis must follow a **SWOT** structure:
+
+**Strengths:**
 - …
 
-**Areas to improve (3–5):**
+**Opportunities:**
 - …
 
-**Specific recommendations (actionable bullets):**
+**Weaknesses:**
 - …
 
-**Final comment (brief and encouraging):**
+**Threats:**
+- …
+
+**Final comment:**
 One short motivational line.
 
-Avoid unnecessary repetition and keep it clear.
+Avoid unnecessary repetition and keep it clear, concise, and professional.
 """
 
     prompt = (
@@ -133,6 +141,7 @@ Avoid unnecessary repetition and keep it clear.
         f"Job Description:\n{job_desc}\n"
     )
     return prompt
+
 
 # -------------------------------
 # LLMs (stateless por request)
