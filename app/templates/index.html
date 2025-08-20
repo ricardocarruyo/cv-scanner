@@ -187,8 +187,7 @@
                     loading="lazy">
                 </div>
               </div>
-            </section>
-            {% endblock %}  {# ← IMPORTANTE: cerramos el block aquí para que NO se muestre el form #}
+            </section>            
           {% else %}
             {# ===== Usuario con sesión: muestra tu UI actual (form + panel derecho + resultados) ===== #}
             <form method="post" enctype="multipart/form-data" action="{{ url_for('main.index') }}">
