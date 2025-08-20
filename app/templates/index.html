@@ -88,110 +88,120 @@
   .label-with-badge{ display:flex; align-items:center; gap:.5rem; }
   .before-button{ display:flex; align-items:center; gap:.5rem; }
 
-  /* ===== Hero (landing antes de iniciar sesión) ===== */
-  .hero-wrap{
-    min-height: calc(100vh - 5rem);
-    display: grid;
-    align-items: center;
-    padding: 2rem 0 3rem;
+  /* ===== HERO a ancho completo cuando NO hay sesión ===== */
+  .hero-wrap {
+    padding: 2rem 0 1rem;
   }
+
   .hero-title{
     font-weight: 800;
     line-height: 1.05;
-    letter-spacing: -0.5px;
-    font-size: clamp(1.8rem, 2.8vw + 1rem, 3.2rem);
+    letter-spacing: -0.02em;
+    font-size: clamp(2rem, 3.6vw + 1rem, 3.25rem);
+    margin: 0;
   }
+
   .hero-sub{
     color: #6c757d;
-    max-width: 48ch;
+    font-size: 1rem;
+    max-width: 42ch;
   }
+
   .hero-cta{
-    padding: .9rem 1.2rem;
+    padding: .85rem 1.25rem;
     font-weight: 700;
-    border-width: 2px;
+    border-radius: .75rem;
   }
+
+  .hero-muted{ color:#6c757d; font-size:.9rem; }
+
   .hero-art{
     width: 100%;
+    max-width: 520px;     /* un poco más grande en ancho completo */
     height: auto;
-    max-width: 780px;
-    border-radius: .5rem;
-    box-shadow: 0 8px 28px rgba(0,0,0,.08);
+    border-radius: .75rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,.06);
   }
-  .stepper-img{
-    width: 100%;
-    max-width: 880px;
-    height: auto;
-    opacity: .95;
-    display: block;
-    margin-inline: auto;
+
+  .stepper-img{ width:100%; max-width:580px; display:block; height:auto; }
+
+  /* En modo hero a ancho completo no necesitamos “igualar paneles” */
+  .equal-panels .card{ height: auto; }
+
+  /* Fondo un poco más claro */
+  body{
+    background:
+      radial-gradient(circle at 25% 10%, rgba(255,255,255,.92) 0 40%, transparent 41%),
+      radial-gradient(circle at 75% 0%,  rgba(255,255,255,.88) 0 35%, transparent 36%),
+      linear-gradient(180deg, #f9fbfe, #f2f6fb);
   }
-  .hero-muted{
-    font-size: .95rem;
-    color: #6c757d;
-  }
+
 </style>
 {% endblock %}
 
 {% block content %}
+  {% set logged_in = session.get('user_email') %}
+
   <div class="container mt-3">
-    <div class="row g-4 mb-4 equal-panels">
-      <!-- IZQUIERDA: FORM -->
-      <div class="col-12 col-lg-6 pt-0 pb-0 ps-0 pe-3">
-        <div class="card p-4 shadow-sm h-100">
-          {% if not session.get('user_email') %}
-            <!-- ===== Landing / Hero (visitante sin sesión) ===== -->
-            <section class="hero-wrap">
-              <div class="container">
-                <div class="row g-5 align-items-center">
-                  <!-- Texto + CTA -->
-                  <div class="col-12 col-lg-6">
-                    <h1 class="hero-title">
-                      {{ is_en and "Optimize your resume to get more interviews" 
-                                or  "Optimiza tu CV para conseguir más entrevistas" }}
-                    </h1>
-                    <p class="hero-sub mt-3">
-                      {{ is_en and
-                        "Our scanner highlights the experience and skills recruiters and ATS need to see for any job."
-                        or
-                        "Nuestro escáner resalta la experiencia y habilidades que reclutadores y ATS necesitan ver para cualquier puesto."
-                      }}
-                    </p>
+    {% if not logged_in %}
+      {# ===== HERO A ANCHO COMPLETO ===== #}
+      <section class="hero-wrap">
+        <div class="row g-5 align-items-center">
+          <!-- Texto + CTA -->
+          <div class="col-12 col-lg-6">
+            <h1 class="hero-title">
+              {{ is_en and "Optimize your resume to get more interviews" 
+                        or  "Optimiza tu CV para conseguir más entrevistas" }}
+            </h1>
 
-                    <a class="btn btn-primary btn-lg hero-cta mt-3"
-                      href="{{ url_for('auth.login') }}">
-                      {{ is_en and "Scan Your Resume For Free" or "Escanea tu CV Gratis" }}
-                    </a>
+            <p class="hero-sub mt-3">
+              {{ is_en and
+                "Our scanner highlights the experience and skills recruiters and ATS need to see for any job."
+                or
+                "Nuestro escáner resalta la experiencia y habilidades que reclutadores y ATS necesitan ver para cualquier puesto."
+              }}
+            </p>
 
-                    <p class="hero-muted mt-3">
-                      {{ is_en and "No credit card required." or "No requiere tarjeta de crédito." }}
-                    </p>
-                  </div>
+            <a class="btn btn-primary btn-lg hero-cta mt-3"
+               href="{{ url_for('auth.login') }}">
+              {{ is_en and "Scan Your Resume For Free" or "Escanea tu CV Gratis" }}
+            </a>
 
-                  <!-- Mockup -->
-                  <div class="col-12 col-lg-6 text-center">
-                    <img
-                      src="{{ url_for('static', filename='Intro.png') }}"
-                      alt="{{ is_en and 'Resume scan mockup' or 'Mockup del análisis de CV' }}"
-                      class="hero-art"
-                      loading="lazy">
-                  </div>
-                </div>
+            <p class="hero-muted mt-3">
+              {{ is_en and "No credit card required." or "No requiere tarjeta de crédito." }}
+            </p>
+          </div>
 
-                <!-- Stepper -->
-                <div class="mt-5">
-                  <img
-                    src="{{ url_for('static', filename='Stepper.png') }}"
-                    alt="{{ is_en and 'Steps: Upload Resume · Add Job · View Results' 
-                                or 'Pasos: Subir CV · Agregar Puesto · Ver Resultados' }}"
-                    class="stepper-img"
-                    loading="lazy">
-                </div>
-              </div>
-            </section>            
-          {% else %}
-            {# ===== Usuario con sesión: muestra tu UI actual (form + panel derecho + resultados) ===== #}
+          <!-- Mockup -->
+          <div class="col-12 col-lg-6 text-center">
+            <img
+              src="{{ url_for('static', filename='Intro.png') }}"
+              alt="{{ is_en and 'Resume scan mockup' or 'Mockup del análisis de CV' }}"
+              class="hero-art"
+              loading="lazy">
+          </div>
+        </div>
+
+        <!-- Stepper centrado -->
+        <div class="mt-5 d-flex justify-content-center">
+          <img
+            src="{{ url_for('static', filename='Stepper.png') }}"
+            alt="{{ is_en and 'Steps: Upload Resume · Add Job · View Results' 
+                        or 'Pasos: Subir CV · Agregar Puesto · Ver Resultados' }}"
+            class="stepper-img"
+            loading="lazy">
+        </div>
+      </section>
+
+    {% else %}
+      {# ===== CON SESIÓN: DOS COLUMNAS (FORM + PANEL DERECHO) ===== #}
+      <div class="row g-4 mb-4 equal-panels">
+        <!-- IZQUIERDA: FORM -->
+        <div class="col-12 col-lg-6 pt-0 pb-0 ps-0 pe-3">
+          <div class="card p-4 shadow-sm h-100">
+            {# === TU FORM COMPLETO COMO LO TENÍAS === #}
             <form method="post" enctype="multipart/form-data" action="{{ url_for('main.index') }}">
-              <!-- Panel de lineamientos corto arriba del form (opcional) -->
+              <!-- Panel de lineamientos corto arriba del form -->
               <div class="w-100">
                 <h5 class="mb-2">{{ t('panel.guidelines.title') }}</h5>
                 <ul class="small mb-3">
@@ -264,112 +274,89 @@
                 </button>
               </div>
             </form>
-          {% endif %}
+          </div>
         </div>
-      </div>
 
-      <!-- DERECHA: LINEAMIENTOS -->
-      <div class="col-12 col-lg-6 ps-3 pt-0 pb-0 pe-0">
-        <div class="card p-4 shadow-sm h-100 d-flex align-items-stretch">
-          <div class="w-100">
-            <h5 class="mb-3">{{ t('panel.ats.title') }}</h5>
-            <ul class="small">
-              {% for li in t('panel.ats.items').split(';;') %}
-                <li>{{ li|safe }}</li>
-              {% endfor %}
-            </ul>
+        <!-- DERECHA: PANEL RECOMENDACIONES -->
+        <div class="col-12 col-lg-6 ps-3 pt-0 pb-0 pe-0">
+          <div class="card p-4 shadow-sm h-100 d-flex align-items-stretch">
+            <div class="w-100">
+              <h5 class="mb-3">{{ t('panel.ats.title') }}</h5>
+              <ul class="small">
+                {% for li in t('panel.ats.items').split(';;') %}
+                  <li>{{ li|safe }}</li>
+                {% endfor %}
+              </ul>
 
-            <h6 class="mt-3">{{ t('panel.syn.title') }}</h6>
-            <p class="small text-muted mb-2">{{ t('panel.syn.note') }}</p>
-            <ul class="small mb-3">
-              <li>
-                <strong>{{ is_en and "Professional Profile" or "Perfil profesional" }}</strong>
-                → {{ is_en and "Professional Summary, Summary, Objective(s), Profile" or "Resumen profesional, Resumen, Objetivo(s), Summary, Professional Summary, Profile, Objective" }}.
-              </li>
-              <li>
-                <strong>{{ is_en and "Work Experience" or "Experiencia laboral" }}</strong>
-                → {{ is_en and "Professional Experience, Experience, Employment History, Career History" or "Experiencia profesional, Experiencia, Experience, Professional Experience, Work Experience, Employment History, Career History" }}.
-              </li>
-              <li>
-                <strong>{{ is_en and "Education" or "Educación" }}</strong>
-                → {{ is_en and "Academic Background" or "Formación académica, Education, Academic Background" }}.
-              </li>
-              <li>
-                <strong>{{ is_en and "Skills" or "Habilidades" }}</strong>
-                → {{ is_en and "Competencies, Hard/Soft/Technical Skills" or "Competencias, Skills, Hard Skills, Soft Skills, Technical Skills" }}.
-              </li>
-              <li>
-                <strong>{{ is_en and "Languages" or "Idiomas" }}</strong>
-              </li>
-            </ul>
+              <h6 class="mt-3">{{ t('panel.syn.title') }}</h6>
+              <p class="small text-muted mb-2">{{ t('panel.syn.note') }}</p>
+              <ul class="small mb-3">
+                <li><strong>{{ is_en and "Professional Profile" or "Perfil profesional" }}</strong> → {{ is_en and "Professional Summary, Summary, Objective(s), Profile" or "Resumen profesional, Resumen, Objetivo(s), Summary, Professional Summary, Profile, Objective" }}.</li>
+                <li><strong>{{ is_en and "Work Experience" or "Experiencia laboral" }}</strong> → {{ is_en and "Professional Experience, Experience, Employment History, Career History" or "Experiencia profesional, Experiencia, Experience, Professional Experience, Work Experience, Employment History, Career History" }}.</li>
+                <li><strong>{{ is_en and "Education" or "Educación" }}</strong> → {{ is_en and "Academic Background" or "Formación académica, Education, Academic Background" }}.</li>
+                <li><strong>{{ is_en and "Skills" or "Habilidades" }}</strong> → {{ is_en and "Competencies, Hard/Soft/Technical Skills" or "Competencias, Skills, Hard Skills, Soft Skills, Technical Skills" }}.</li>
+                <li><strong>{{ is_en and "Languages" or "Idiomas" }}</strong></li>
+              </ul>
 
-            <h6 class="mt-3">{{ t('star.title') }}</h6>
-            <p class="small mb-1">{{ t('star.help')|safe }}</p>
-            <ul class="small mb-0">
-              <li>{{ t('star.s')|safe }}</li>
-              <li>{{ t('star.t')|safe }}</li>
-              <li>{{ t('star.a')|safe }}</li>
-              <li>{{ t('star.r')|safe }}</li>
-            </ul>
+              <h6 class="mt-3">{{ t('star.title') }}</h6>
+              <p class="small mb-1">{{ t('star.help')|safe }}</p>
+              <ul class="small mb-0">
+                <li>{{ t('star.s')|safe }}</li>
+                <li>{{ t('star.t')|safe }}</li>
+                <li>{{ t('star.a')|safe }}</li>
+                <li>{{ t('star.r')|safe }}</li>
+              </ul>
 
-            {% if is_admin %}
-              <div class="ms-3 mt-3">
-                <label for="modelSelect" class="form-label fw-bold small mb-1">Select model</label>
-                <select id="modelSelect" class="form-select form-select-sm" onchange="changeModel(this.value)">
-                  <option value="auto"   {% if session.selected_model == 'auto' %}selected{% endif %}>Auto</option>
-                  <option value="openai" {% if session.selected_model == 'openai' %}selected{% endif %}>OpenAI</option>
-                  <option value="gemini" {% if session.selected_model == 'gemini' %}selected{% endif %}>Gemini</option>
-                </select>
-              </div>
-            {% endif %}
+              {% if is_admin %}
+                <div class="ms-3 mt-3">
+                  <label for="modelSelect" class="form-label fw-bold small mb-1">Select model</label>
+                  <select id="modelSelect" class="form-select form-select-sm" onchange="changeModel(this.value)">
+                    <option value="auto"   {% if session.selected_model == 'auto' %}selected{% endif %}>Auto</option>
+                    <option value="openai" {% if session.selected_model == 'openai' %}selected{% endif %}>OpenAI</option>
+                    <option value="gemini" {% if session.selected_model == 'gemini' %}selected{% endif %}>Gemini</option>
+                  </select>
+                </div>
+              {% endif %}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Resultado del análisis -->
-  {% if feedback %}
-    <h3 id="ai-analysis" class="visually-hidden">{{ t('analysis.title') }}</h3>
+      {# ===== RESULTADOS ===== #}
+      {% if feedback %}
+        <h3 id="ai-analysis" class="visually-hidden">{{ t('analysis.title') }}</h3>
+        {% if just_analyzed %}
+          <script>
+            window.addEventListener('load', function(){
+              const el = document.getElementById('ai-analysis');
+              if(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); }
+            });
+          </script>
+        {% endif %}
+        <div class="row g-4">
+          <div class="col-12">
+            {% set print_mode = False %}
+            {% include "_analysis_block.html" %}
+          </div>
+        </div>
+      {% endif %}
 
-    {% if just_analyzed %}
-      <script>
-        window.addEventListener('load', function(){
-          const el = document.getElementById('ai-analysis');
-          if(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); }
-        });
-      </script>
-    {% endif %}
-
-    <div class="row g-4">
-      <div class="col-12">
-        {% set print_mode = False %}
-        {% include "_analysis_block.html" %}
+      {# ===== SUGERENCIAS ===== #}
+      <div class="card mt-4 p-4 shadow-sm">
+        <h4 class="mb-3"><i class="bi bi-chat-text"></i> {{ is_en and "Do you have suggestions to improve?" or "¿Tienes sugerencias para mejorar?" }}</h4>
+        <form method="post" action="{{ url_for('main.leave_comment') }}">
+          <div class="mb-2">
+            <label class="form-label">{{ is_en and "Your comment" or "Tu comentario" }}</label>
+            <textarea class="form-control" name="comment" rows="3" maxlength="2000" required></textarea>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="small text-muted">{{ is_en and "Thanks for helping improve the service." or "Gracias por ayudar a mejorar el servicio." }}</div>
+            <button class="btn btn-outline-primary"><i class="bi bi-send"></i> {{ is_en and "Send" or "Enviar" }}</button>
+          </div>
+        </form>
       </div>
-    </div>
-  {% endif %}
-
-  <!-- Sugerencias (solo con sesión) -->
-  {% if session.get('user_email') %}
-    <div class="card mt-4 p-4 shadow-sm">
-      <h4 class="mb-3">
-        <i class="bi bi-chat-text"></i>
-        {{ is_en and "Do you have suggestions to improve?" or "¿Tienes sugerencias para mejorar?" }}
-      </h4>
-      <form method="post" action="{{ url_for('main.leave_comment') }}">
-        <div class="mb-2">
-          <label class="form-label">{{ is_en and "Your comment" or "Tu comentario" }}</label>
-          <textarea class="form-control" name="comment" rows="3" maxlength="2000" required></textarea>
-        </div>
-        <div class="d-flex justify-content-between align-items-center">
-          <div class="small text-muted">{{ is_en and "Thanks for helping improve the service." or "Gracias por ayudar a mejorar el servicio." }}</div>
-          <button class="btn btn-outline-primary">
-            <i class="bi bi-send"></i> {{ is_en and "Send" or "Enviar" }}
-          </button>
-        </div>
-      </form>
-    </div>
-  {% endif %}
+    {% endif %}
+  </div>
 {% endblock %}
 
 {% block extra_js %}
