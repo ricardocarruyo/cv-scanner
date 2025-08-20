@@ -1,5 +1,7 @@
 Flask
 Flask-SQLAlchemy
+Flask-Migrate
+python-dotenv
 pymupdf==1.26.3
 openai>=1.40.0
 google-generativeai

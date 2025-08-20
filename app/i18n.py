@@ -116,7 +116,19 @@ STRINGS = {
         "print.date": "Fecha",
         "print.email": "Correo",
         "print.file": "Archivo",
-        "print.print_button": "Imprimir / Guardar PDF"
+        "print.print_button": "Imprimir / Guardar PDF",
+
+        # Membresías
+        "err.limit_reached": "Has alcanzado tu límite de {limit} análisis para tu nivel.",
+        "admin.memberships.title": "Membresías",
+        "admin.memberships.create": "Crear/Actualizar nivel",
+        "admin.memberships.code": "Código",
+        "admin.memberships.title_label": "Título",
+        "admin.memberships.max_execs": "Máx. análisis",
+        "admin.memberships.active": "Activo",
+        "admin.memberships.save": "Guardar",
+        "admin.memberships.delete": "Eliminar",
+
     },
     "en": {
         "app.title": "CV Match Scanner",
@@ -228,8 +240,18 @@ STRINGS = {
         "print.date": "Date",
         "print.email": "Email",
         "print.file": "File",
-        "print.print_button": "Print / Save PDF"
-
+        "print.print_button": "Print / Save PDF",
+        
+        # Memberships
+        "err.limit_reached": "You have reached your limit of {limit} analyses for your plan.",
+        "admin.memberships.title": "Memberships",
+        "admin.memberships.create": "Create/Update level",
+        "admin.memberships.code": "Code",
+        "admin.memberships.title_label": "Title",
+        "admin.memberships.max_execs": "Max analyses",
+        "admin.memberships.active": "Active",
+        "admin.memberships.save": "Save",
+        "admin.memberships.delete": "Delete",
     }
 }
 

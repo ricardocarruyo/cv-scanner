@@ -8,7 +8,7 @@ from datetime import datetime
 from sqlalchemy import asc
 
 from ..extensions import db
-from ..models import User, Execution, Comment
+from ..models import User, Execution, Comment, Membership
 from ..services.security import allowed_file, looks_suspicious
 from ..services.files import extract_pdf, extract_docx
 from ..services.ai import (
@@ -212,15 +212,52 @@ def index():
             idioma_detectado = detectar_idioma(cv_text + " " + jobdesc)
             disclaimer = disclaimer_text(idioma_detectado)
 
+            def _default_membership():
+                return Membership.query.filter_by(code="level_1").first()   
+
             # Persistencia
             u = db.session.get(User, email)
             if not u:
                 u = User(email=email)
                 db.session.add(u)
+            # asigna nivel 1 por defecto si existe
+            m = _default_membership()
+            if m:
+                u.membership = m
+                db.session.add(u)
+
             if name: u.full_name = name
             if picture: u.picture = picture
             if occ: u.occupation = occ
             db.session.commit()
+
+            # 0) Asegura que el usuario existe/trae su nivel
+            u = db.session.get(User, email)
+            if not u:
+                u = User(email=email)
+                # asigna nivel por defecto si existe                
+                m = Membership.query.filter_by(code="level_1").first()
+                if m:
+                    u.membership = m
+                db.session.add(u)
+                db.session.commit()
+
+            # 1) Calcula usados y límite
+            # Opción A: usar columna cacheada
+            # used = u.execs_used or 0
+
+            # Opción B (si prefieres calcular en vivo):
+            # from ..models import Execution
+            used = db.session.query(Execution).filter(Execution.email == email).count()
+
+            limit = u.exec_limit
+
+            if used >= limit:
+                # mensajes i18n (ver sección i18n más abajo)
+                lang = session.get("lang", "es")               
+                msg = tr(lang, "err.limit_reached", limit=limit)
+                flash(msg, "warning")
+                return redirect(url_for("main.index"))
 
             jd_lang = detectar_idioma(jobdesc)
 
@@ -238,6 +275,10 @@ def index():
                 ats_score=score_ats
             )
             db.session.add(ex)
+            db.session.commit()
+
+            # incrementa usado (si usas execs_used)
+            u.execs_used = (u.execs_used or 0) + 1
             db.session.commit()
 
             # último análisis en users
