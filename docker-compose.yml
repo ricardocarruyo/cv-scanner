@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:15
+    container_name: cvms_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cvms
+      POSTGRES_PASSWORD: cvms123
+      POSTGRES_DB: cvms_local
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_cvms:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cvms -d cvms_local"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Opcional: pgAdmin para inspeccionar la DB en navegador
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: cvms_pgadmin
+    depends_on:
+      - db
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8081:80"
+
+volumes:
+  pgdata_cvms:

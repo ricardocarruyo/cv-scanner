@@ -1,0 +1,28 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Archivos de entorno (credenciales)
+.env
+*.env
+
+# Compilados de Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Archivos de migraciones de Alembic (opcionales, se suelen subir)
+migrations/versions/*.py
+
+# Archivos temporales
+*.log
+*.sqlite3
+*.db
+.DS_Store
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.swp

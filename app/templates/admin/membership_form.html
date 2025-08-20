@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if item else 'Nueva' }} membresía{% endblock %}
+{% block content %}
+<div class="card p-3 shadow-sm">
+  <h4 class="mb-3">{{ 'Editar' if item else 'Nueva' }} membresía</h4>
+  <form method="post">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label">Code</label>
+        <input class="form-control" name="code" value="{{ item.code if item else '' }}" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Title</label>
+        <input class="form-control" name="title" value="{{ item.title if item else '' }}" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Max execs</label>
+        <input type="number" min="0" class="form-control" name="max_execs" value="{{ item.max_execs if item else 10 }}">
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="is_active" id="ia" {% if item and item.is_active %}checked{% endif %}>
+          <label for="ia" class="form-check-label">Activo</label>
+        </div>
+      </div>
+    </div>
+    <div class="mt-3">
+      <button class="btn btn-primary">Guardar</button>
+      <a href="{{ url_for('admin.memberships_list') }}" class="btn btn-outline-secondary">Volver</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

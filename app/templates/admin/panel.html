@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Admin · Panel{% endblock %}
+{% block content %}
+<div class="card p-3 shadow-sm">
+  <h4 class="mb-3">Panel</h4>
+  <div class="row g-3">
+    <div class="col-md-4"><div class="border rounded p-3">Usuarios: <strong>{{ users_count }}</strong></div></div>
+    <div class="col-md-4"><div class="border rounded p-3">Ejecuciones: <strong>{{ execs_count }}</strong></div></div>
+    <div class="col-md-4"><div class="border rounded p-3">Comentarios: <strong>{{ comments_count }}</strong></div></div>
+  </div>
+  <hr>
+  <h6>Niveles existentes</h6>
+  <ul class="small mb-0">
+    {% for m in levels %}
+      <li><strong>{{ m.title }}</strong> ({{ m.code }}) – máx {{ m.max_execs }} – {{ 'activo' if m.is_active else 'inactivo' }}</li>
+    {% else %}
+      <li class="text-muted">Sin niveles</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

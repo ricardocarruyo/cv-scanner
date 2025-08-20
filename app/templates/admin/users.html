@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Usuarios{% endblock %}
+{% block content %}
+<h4 class="mb-3">Usuarios</h4>
+<div class="table-responsive card p-2 shadow-sm">
+  <table class="table table-sm align-middle mb-0">
+    <thead><tr>
+      <th>Email</th><th>Nombre</th><th>Membresía</th>
+      <th>Usadas</th><th>Límite</th><th>Restantes</th><th></th>
+    </tr></thead>
+    <tbody>
+      {% for u, used, limit, left in rows %}
+      <tr>
+        <td>{{ u.email }}</td>
+        <td>{{ u.full_name or '-' }}</td>
+        <td>{{ u.membership.title if u.membership else '—' }}</td>
+        <td>{{ used }}</td>
+        <td>{{ limit if limit is not none else '—' }}</td>
+        <td>{{ left if limit is not none else '—' }}</td>
+        <td><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('admin.user_detail', email=u.email) }}">Ver</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="text-muted">Sin usuarios aún.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

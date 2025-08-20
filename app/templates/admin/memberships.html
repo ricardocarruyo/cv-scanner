@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Membresías{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h4 class="mb-0">Membresías</h4>
+  <a href="{{ url_for('admin.memberships_new') }}" class="btn btn-primary btn-sm">Nueva</a>
+</div>
+<div class="table-responsive card p-2 shadow-sm">
+  <table class="table table-sm align-middle mb-0">
+    <thead><tr>
+      <th>ID</th><th>Code</th><th>Title</th><th>Max execs</th><th>Activo</th><th></th>
+    </tr></thead>
+    <tbody>
+      {% for m in items %}
+      <tr>
+        <td>{{ m.id }}</td>
+        <td>{{ m.code }}</td>
+        <td>{{ m.title }}</td>
+        <td>{{ m.max_execs }}</td>
+        <td>{{ 'Sí' if m.is_active else 'No' }}</td>
+        <td><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('admin.memberships_edit', mid=m.id) }}">Editar</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="text-muted">No hay niveles aún.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
