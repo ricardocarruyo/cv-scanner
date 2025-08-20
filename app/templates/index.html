@@ -87,6 +87,48 @@
 
   .label-with-badge{ display:flex; align-items:center; gap:.5rem; }
   .before-button{ display:flex; align-items:center; gap:.5rem; }
+
+  /* ===== Hero (landing antes de iniciar sesión) ===== */
+  .hero-wrap{
+    min-height: calc(100vh - 5rem);
+    display: grid;
+    align-items: center;
+    padding: 2rem 0 3rem;
+  }
+  .hero-title{
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.5px;
+    font-size: clamp(1.8rem, 2.8vw + 1rem, 3.2rem);
+  }
+  .hero-sub{
+    color: #6c757d;
+    max-width: 48ch;
+  }
+  .hero-cta{
+    padding: .9rem 1.2rem;
+    font-weight: 700;
+    border-width: 2px;
+  }
+  .hero-art{
+    width: 100%;
+    height: auto;
+    max-width: 780px;
+    border-radius: .5rem;
+    box-shadow: 0 8px 28px rgba(0,0,0,.08);
+  }
+  .stepper-img{
+    width: 100%;
+    max-width: 880px;
+    height: auto;
+    opacity: .95;
+    display: block;
+    margin-inline: auto;
+  }
+  .hero-muted{
+    font-size: .95rem;
+    color: #6c757d;
+  }
 </style>
 {% endblock %}
 
@@ -97,13 +139,58 @@
       <div class="col-12 col-lg-6 pt-0 pb-0 ps-0 pe-3">
         <div class="card p-4 shadow-sm h-100">
           {% if not session.get('user_email') %}
-            <div class="text-center">
-              <p class="mb-3">{{ is_en and "To use the analyzer, first sign in with Google." or "Para usar el analizador, primero inicia sesión con Google." }}</p>
-              <a class="btn btn-outline-primary" href="{{ url_for('auth.login') }}">
-                <i class="bi bi-google"></i> {{ t('nav.sign_in') }}
-              </a>
-            </div>
+            <!-- ===== Landing / Hero (visitante sin sesión) ===== -->
+            <section class="hero-wrap">
+              <div class="container">
+                <div class="row g-5 align-items-center">
+                  <!-- Texto + CTA -->
+                  <div class="col-12 col-lg-6">
+                    <h1 class="hero-title">
+                      {{ is_en and "Optimize your resume to get more interviews" 
+                                or  "Optimiza tu CV para conseguir más entrevistas" }}
+                    </h1>
+                    <p class="hero-sub mt-3">
+                      {{ is_en and
+                        "Our scanner highlights the experience and skills recruiters and ATS need to see for any job."
+                        or
+                        "Nuestro escáner resalta la experiencia y habilidades que reclutadores y ATS necesitan ver para cualquier puesto."
+                      }}
+                    </p>
+
+                    <a class="btn btn-primary btn-lg hero-cta mt-3"
+                      href="{{ url_for('auth.login') }}">
+                      {{ is_en and "Scan Your Resume For Free" or "Escanea tu CV Gratis" }}
+                    </a>
+
+                    <p class="hero-muted mt-3">
+                      {{ is_en and "No credit card required." or "No requiere tarjeta de crédito." }}
+                    </p>
+                  </div>
+
+                  <!-- Mockup -->
+                  <div class="col-12 col-lg-6 text-center">
+                    <img
+                      src="{{ url_for('static', filename='Intro.png') }}"
+                      alt="{{ is_en and 'Resume scan mockup' or 'Mockup del análisis de CV' }}"
+                      class="hero-art"
+                      loading="lazy">
+                  </div>
+                </div>
+
+                <!-- Stepper -->
+                <div class="mt-5">
+                  <img
+                    src="{{ url_for('static', filename='Stepper.png') }}"
+                    alt="{{ is_en and 'Steps: Upload Resume · Add Job · View Results' 
+                                or 'Pasos: Subir CV · Agregar Puesto · Ver Resultados' }}"
+                    class="stepper-img"
+                    loading="lazy">
+                </div>
+              </div>
+            </section>
+            {% endblock %}  {# ← IMPORTANTE: cerramos el block aquí para que NO se muestre el form #}
           {% else %}
+            {# ===== Usuario con sesión: muestra tu UI actual (form + panel derecho + resultados) ===== #}
             <form method="post" enctype="multipart/form-data" action="{{ url_for('main.index') }}">
               <!-- Panel de lineamientos corto arriba del form (opcional) -->
               <div class="w-100">
