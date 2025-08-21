@@ -188,8 +188,8 @@ def index():
 
             if not feedback_text:
                 current_app.logger.error(
-                    "No se pudo generar feedback con el modelo '%s'. err=%s",
-                    selected_model, oi_error
+                    "No se pudo generar feedback con el modelo '%s'. vendor=openai err=%s cv_len=%s jd_len=%s",
+                    selected_model, oi_error, len(cv_text or ""), len(jobdesc or "")
                 )
                 flash(T("err.analysis"))
                 return redirect(url_for("main.index"))

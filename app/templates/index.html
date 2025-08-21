@@ -126,7 +126,8 @@
   .stepper-img{ width:100%; max-width:580px; display:block; height:auto; }
 
   /* En modo hero a ancho completo no necesitamos “igualar paneles” */
-  .equal-panels .card{ height: auto; }
+  .equal-panels.row{ align-items: stretch; }
+  .equal-panels .card{ height: 100%; }
 
   /* Fondo un poco más claro */
   body{
@@ -195,9 +196,9 @@
 
     {% else %}
       {# ===== CON SESIÓN: DOS COLUMNAS (FORM + PANEL DERECHO) ===== #}
-      <div class="row g-4 mb-4 equal-panels">
+      <div class="row equal-panels g-4">
         <!-- IZQUIERDA: FORM -->
-        <div class="col-12 col-lg-6 pt-0 pb-0 ps-0 pe-3">
+        <div class="col-12 col-lg-6">
           <div class="card p-4 shadow-sm h-100">
             {# === TU FORM COMPLETO COMO LO TENÍAS === #}
             <form method="post" enctype="multipart/form-data" action="{{ url_for('main.index') }}">
@@ -278,7 +279,7 @@
         </div>
 
         <!-- DERECHA: PANEL RECOMENDACIONES -->
-        <div class="col-12 col-lg-6 ps-3 pt-0 pb-0 pe-0">
+        <div class="col-12 col-lg-6">
           <div class="card p-4 shadow-sm h-100 d-flex align-items-stretch">
             <div class="w-100">
               <h5 class="mb-3">{{ t('panel.ats.title') }}</h5>
@@ -342,16 +343,22 @@
       {% endif %}
 
       {# ===== SUGERENCIAS ===== #}
-      <div class="card mt-4 p-4 shadow-sm">
-        <h4 class="mb-3"><i class="bi bi-chat-text"></i> {{ is_en and "Do you have suggestions to improve?" or "¿Tienes sugerencias para mejorar?" }}</h4>
+      <div class="card mt-4 mb-5 p-4 shadow-sm">  <!-- <- mb-5 para separarla del footer -->
+        <h4 class="mb-3">
+          <i class="bi bi-chat-text"></i>
+          {{ is_en and "Do you have suggestions to improve?" or "¿Tienes sugerencias para mejorar?" }}
+        </h4>
         <form method="post" action="{{ url_for('main.leave_comment') }}">
           <div class="mb-2">
             <label class="form-label">{{ is_en and "Your comment" or "Tu comentario" }}</label>
-            <textarea class="form-control" name="comment" rows="3" maxlength="2000" required></textarea>
+            <textarea class="form-control suggestions-textarea"  
+                      name="comment" rows="2" maxlength="2000" required></textarea>
           </div>
           <div class="d-flex justify-content-between align-items-center">
             <div class="small text-muted">{{ is_en and "Thanks for helping improve the service." or "Gracias por ayudar a mejorar el servicio." }}</div>
-            <button class="btn btn-outline-primary"><i class="bi bi-send"></i> {{ is_en and "Send" or "Enviar" }}</button>
+            <button class="btn btn-outline-primary">
+              <i class="bi bi-send"></i> {{ is_en and "Send" or "Enviar" }}
+            </button>
           </div>
         </form>
       </div>

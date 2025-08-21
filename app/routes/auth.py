@@ -33,7 +33,7 @@ def _base_url() -> str:
     base = base.rstrip("/")  # sin slash final
 
     # Fuerza https en prod (opcional, por config)
-    if current_app.config.get("FORCE_HTTPS", True):
+    if current_app.config.get("FORCE_HTTPS", False):
         if base.startswith("http://"):
             base = "https://" + base[len("http://"):]
     return base
@@ -41,9 +41,29 @@ def _base_url() -> str:
 
 def _callback_url() -> str:
     """
-    Construye SIEMPRE la misma redirect_uri para /login y /auth/callback.
+    Redirect URI única y consistente para /login y /auth/callback.
+
+    Prioridad:
+    1) GOOGLE_REDIRECT_URI (o alias OAUTH_REDIRECT_URI) si están definidos en config/.env
+    2) APP_BASE_URL + '/auth/callback'
+    3) request.host_url + '/auth/callback'
     """
-    return f"{_base_url()}/auth/callback"
+    # 1) variables explícitas (recomendado)
+    explicit = (
+        current_app.config.get("GOOGLE_REDIRECT_URI")
+        or current_app.config.get("OAUTH_REDIRECT_URI")
+    )
+    if explicit:
+        return explicit.rstrip("/")
+
+    # 2) base de app (producción normalmente)
+    base = (current_app.config.get("APP_BASE_URL") or "").strip().rstrip("/")
+    if base:
+        return f"{base}/auth/callback"
+
+    # 3) fallback: lo que estás usando en local
+    base = (request.host_url or "").strip().rstrip("/")
+    return f"{base}/auth/callback"
 
 
 @bp.route("/login")
@@ -56,6 +76,8 @@ def login():
         return redirect(url_for("main.index"))
 
     redirect_uri = _callback_url()
+    # current_app.logger.info("OAuth redirect_uri = %s", redirect_uri)
+
 
     state = _rand()
     nonce = _rand()
@@ -94,6 +116,7 @@ def auth_callback():
         return redirect(url_for("main.index"))
 
     redirect_uri = _callback_url()
+    # current_app.logger.info("OAuth redirect_uri = %s", redirect_uri)
 
     # 2) Intercambio de code por tokens
     data = {
@@ -146,6 +169,19 @@ def auth_callback():
     family = idinfo.get("family_name")
     name = idinfo.get("name")
     picture = idinfo.get("picture")
+
+    # Normaliza URL del avatar para evitar mixed content o URLs sin esquema
+    def _normalize_pic(url: str | None) -> str | None:
+        if not url:
+            return None
+        url = url.strip()
+        if url.startswith("//"):           # esquema omitido
+            url = "https:" + url
+        if url.startswith("http://"):      # fuerza https en prod
+            url = "https://" + url[len("http://"):]
+        return url
+
+    picture = _normalize_pic(picture)
 
     if not email:
         session.pop("oauth_state", None)

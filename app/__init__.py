@@ -13,6 +13,10 @@ from .routes.main import bp as main_bp
 from .routes.auth import bp as auth_bp
 from .routes.history import bp as history_bp
 from .routes.admin import bp as admin_bp
+import logging
+from dotenv import load_dotenv
+
+load_dotenv() 
 
 migrate = Migrate()
 
@@ -26,6 +30,7 @@ def _normalize_database_url(url: str | None) -> str:
 
 def create_app():
     app = Flask(__name__, static_folder="static")
+    app.logger.setLevel(logging.INFO)
 
     # 1) Elegir config por entorno
     cfg_key = (os.getenv("FLASK_CONFIG") or "dev").lower()

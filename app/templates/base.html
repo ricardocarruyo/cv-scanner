@@ -39,14 +39,65 @@
     }
 
     .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
-    footer { background: #fff; border-top: 1px solid #dee2e6; padding: 1rem 0; }
-
+    
     .navbar-brand:focus, .navbar-brand:focus-visible { outline: none !important; box-shadow: none !important; }
-    .navbar-brand img { height: 24px; width: auto; display: inline-block; }  
+    .navbar-brand img { height: 24px; width: auto; display: inline-block; } 
+    
+    .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+    .avatar-fallback {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem; color: #fff; background:#6c757d;
+    }
 
-    /* === IGUALAR ALTURAS DE LOS DOS PANELES ================================= */
-    .equal-panels.row{ align-items: stretch; }
-    .equal-panels .card{ height: 100%; }  
+    /* Más espacio inferior al contenido para que no se pegue al footer */
+    main.container { padding-bottom: 2rem; }
+
+    /* Tarjeta de sugerencias: textarea bajito */
+    .suggestions-textarea {
+      min-height: 70px;   /* altura deseada */
+      max-height: 120px;  /* evita crecer demasiado */
+      resize: vertical;   /* el usuario puede estirar si quiere */
+    }
+    
+    /* Footer más alto y con zona de colaboradores/patrocinadores */
+    footer { background: #fff; border-top: 1px solid #dee2e6; padding: 1rem 0; }
+    footer.site-footer {
+      background: #fff;
+      border-top: 1px solid #dee2e6;
+      padding: 2rem 0;              /* antes era ~1rem, ahora más alto */
+    }
+
+    .footer-top {
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 1rem; 
+      align-items: center; 
+      justify-content: space-between;
+    }
+
+    .sponsors {
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 1rem;
+    }
+    .sponsors img {
+      height: 28px; 
+      opacity: .85; 
+      filter: grayscale(100%); 
+      transition: opacity .2s, filter .2s;
+    }
+    .sponsors img:hover {
+      opacity: 1; 
+      filter: none;
+    }
+
+    .footer-bottom {
+      margin-top: .75rem; 
+      font-size: .9rem; 
+      color: #6c757d;
+    }
+
   </style>
 
 {% block extra_head %}
@@ -111,9 +162,19 @@
         </div>
 
         {% if session.get('user_email') %}
-          {% if session.get('user_picture') %}
-            <img class="avatar me-2" src="{{ session.get('user_picture') }}" alt="avatar">
-          {% endif %}
+          {% set uname = (session.get('user_name') or session.get('user_email') or '') %}
+          {% set parts = uname.split() %}
+          {% set initials = (parts[0][0] if parts and parts[0] else '') ~ (parts[1][0] if parts|length>1 and parts[1] else '') %}
+          <span class="position-relative d-inline-flex align-items-center me-2">
+            <img
+              class="avatar me-2"
+              src="{{ session.get('user_picture') or '' }}"
+              alt="avatar"
+              referrerpolicy="no-referrer"
+              crossorigin="anonymous"
+              onerror="this.style.display='none'; this.nextElementSibling.classList.remove('d-none');">
+            <span class="avatar-fallback d-none">{{ initials|upper or 'U' }}</span>
+          </span>
           <span class="me-3 d-none d-md-inline">{{ session.get('user_name') or session.get('user_email') }}</span>
 
           {% if config.get('ADMIN_EMAIL') and session.get('user_email') and session.get('user_email')|lower == config.get('ADMIN_EMAIL')|lower %}
@@ -165,16 +226,46 @@
   </main>
 
   <!-- Footer -->
-  <footer>
-    <div class="container small text-muted d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
-      <div>
-        &copy; {{ current_year }} CV Match Scanner · Desarrollado por Ricardo Carruyo · Versión {{ version }}
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div>
+          <div class="fw-semibold">
+            {{ 'Collaborators & Sponsors' if is_en else 'Colaboradores y patrocinadores' }}
+          </div>
+          <div class="small text-muted">
+            {{ 'Thanks to our supporters' if is_en else 'Gracias a quienes apoyan el proyecto' }}
+          </div>
+        </div>
+
+        <!-- Logos/links de ejemplo; puedes cambiar rutas/archivos -->
+        <div class="sponsors">
+          <a href="#" aria-label="Sponsor A">
+            <img src="{{ url_for('static', filename='sponsors/sponsor-a.svg') }}"
+                alt="Sponsor A"
+                onerror="this.replaceWith(document.createTextNode('Sponsor A'))">
+          </a>
+          <a href="#" aria-label="Sponsor B">
+            <img src="{{ url_for('static', filename='sponsors/sponsor-b.svg') }}"
+                alt="Sponsor B"
+                onerror="this.replaceWith(document.createTextNode('Sponsor B'))">
+          </a>
+          <!-- agrega más logos si lo necesitas -->
+        </div>
       </div>
-      <div>
-        <i class="bi bi-envelope"></i>
-        <a class="text-decoration-none" href="mailto:cvmatchscanner@gmail.com">
-          cvmatchscanner@gmail.com
-        </a>
+
+      <div class="footer-bottom d-flex flex-column flex-md-row justify-content-between align-items-center">
+        <div>
+          &copy; {{ current_year }} CV Match Scanner ·
+          {{ 'Built by Ricardo Carruyo' if is_en else 'Desarrollado por Ricardo Carruyo' }} ·
+          {{ 'Local version' if is_en else 'Versión local' if version=='v0' else ('Versión ' ~ version) }}
+        </div>
+        <div>         
+          <i class="bi bi-envelope">{{ ' Contact: ' if is_en else ' Contacto: ' }}</i>
+          <a class="text-decoration-none" href="mailto:cvmatchscanner@gmail.com">
+            cvmatchscanner@gmail.com
+          </a>
+        </div>
       </div>
     </div>
   </footer>

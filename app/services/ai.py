@@ -1,6 +1,8 @@
 import re, langdetect, markdown, bleach
 from uuid import uuid4
 from ..extensions import openai_client, gemini_client
+import os, time, json
+from openai import OpenAI
 
 # -------------------------------
 # Utilidades de idioma y puntaje
@@ -158,31 +160,73 @@ Avoid unnecessary repetition and keep it clear, concise, and professional.
 # -------------------------------
 # LLMs (stateless por request)
 # -------------------------------
+MAX_CHARS = 9000  # recorta entradas muy largas para evitar vacíos por tokens
+
+def _trim(txt, maxlen=MAX_CHARS):
+    txt = txt or ""
+    return txt[:maxlen]
 
 def analizar_openai(cv_text, job_desc, nombre: str | None = None):
     """
-    Devuelve (texto_markdown, error). El markdown inicia con 'NN%' en la primera línea.
-    Stateless: sin threads compartidos ni historial previo.
+    Devuelve (texto_markdown, error). Usa Chat Completions (más estable).
+    - Recorta entradas largas
+    - Reintenta si viene vacío
+    - Loguea breve diagnóstico si no hay contenido
     """
     idioma = detectar_idioma((cv_text or "") + " " + (job_desc or ""))
-    prompt = _build_prompt(cv_text, job_desc, idioma, nombre=None)  # forzamos neutro
+    prompt = _build_prompt(_trim(cv_text), _trim(job_desc), idioma, nombre)
 
-    cli = openai_client()
-    if not cli:
-        return None, "OpenAI no configurado"
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return None, "OPENAI_API_KEY no está definido"
 
+    client = OpenAI(api_key=api_key)
+
+    # modelos sugeridos para dev: gpt-4o-mini ; prod: gpt-4o
+    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+    messages = [
+        {"role": "system",
+         "content": ("Eres un reclutador experto, coach de carrera y sistema ATS. "
+                     "Analiza con rigor y devuelve la salida EXACTAMENTE con el formato solicitado.")},
+        {"role": "user", "content": prompt},
+    ]
+
+    last_err = None
+    for attempt in range(2):  # 1 retry sencillo
+        try:
+            resp = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=0.2,
+                max_tokens=1200,  # suficiente para el análisis
+            )
+            text = ""
+            if resp and resp.choices:
+                text = (resp.choices[0].message.content or "").strip()
+
+            if text:
+                return text, None
+
+            # sin texto: intenta segundo intento
+            last_err = "ChatCompletion sin contenido"
+            time.sleep(0.6)
+        except Exception as e:
+            last_err = f"Excepción OpenAI: {e}"
+            break
+
+    # diagnóstico breve (no loguees prompts completos en prod)
     try:
-        # Cada request es independiente; no pasamos thread_id ni history
-        resp = cli.responses.create(
-            model="gpt-4o",
-            input=prompt,
-            temperature=0.2,
-            # Cabecera opcional para evitar caches de gateway (si tu SDK la soporta)
-            extra_headers={"x-nonce": str(uuid4())}
+        # en tu logger de Flask:
+        from flask import current_app
+        current_app.logger.error(
+            "OpenAI vacío. model=%s cv_len=%s jd_len=%s last_err=%s",
+            model, len(cv_text or ""), len(job_desc or ""), last_err
         )
-        return getattr(resp, "output_text", None), None
-    except Exception as e:
-        return None, str(e)
+    except Exception:
+        pass
+
+    return None, last_err or "Respuesta vacía de OpenAI"
 
 def analizar_gemini(cv_text, job_desc, nombre: str | None = None):
     """
