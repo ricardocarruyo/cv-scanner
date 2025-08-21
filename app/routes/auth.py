@@ -23,20 +23,27 @@ def _rand(n=24):
     return "".join(secrets.choice(alphabet) for _ in range(n))
 
 
+def _base_url() -> str:
+    """
+    Devuelve la base URL a usar para construir redirect_uri.
+    Prioriza APP_BASE_URL (prod), si no existe deriva de request.host_url.
+    Limpia el slash final y puede forzar https si FORCE_HTTPS=true.
+    """
+    base = (current_app.config.get("APP_BASE_URL") or request.host_url).strip()
+    base = base.rstrip("/")  # sin slash final
+
+    # Fuerza https en prod (opcional, por config)
+    if current_app.config.get("FORCE_HTTPS", True):
+        if base.startswith("http://"):
+            base = "https://" + base[len("http://"):]
+    return base
+
+
 def _callback_url() -> str:
     """
-    Devuelve la redirect_uri exacta que usaremos tanto en /login como en /auth/callback.
-    - Si GOOGLE_REDIRECT_URI está definido en config/.env, se usa tal cual.
-    - Si no, se construye con url_for(_external=True) y esquema de PREFERRED_URL_SCHEME.
-    Esto evita mismatches entre local y producción.
+    Construye SIEMPRE la misma redirect_uri para /login y /auth/callback.
     """
-    explicit = current_app.config.get("GOOGLE_REDIRECT_URI")
-    if explicit:
-        return explicit
-
-    scheme = current_app.config.get("PREFERRED_URL_SCHEME", "http")
-    # El endpoint de callback es auth_callback (ruta /auth/callback)
-    return url_for("auth.auth_callback", _external=True, _scheme=scheme)
+    return f"{_base_url()}/auth/callback"
 
 
 @bp.route("/login")
@@ -62,7 +69,7 @@ def login():
         "scope": GOOGLE_SCOPES,
         "access_type": "online",
         "include_granted_scopes": "true",
-        "prompt": "select_account",  # en dev puedes usar "consent" para forzar
+        "prompt": "select_account",  # en dev puedes usar "consent"
         "state": state,
         "nonce": nonce,
     }
@@ -74,7 +81,6 @@ def auth_callback():
     # 1) validar state
     sent_state = request.args.get("state")
     if not sent_state or sent_state != session.get("oauth_state"):
-        # limpia por si acaso
         session.pop("oauth_state", None)
         session.pop("oauth_nonce", None)
         flash("Estado de OAuth inválido. Intenta nuevamente.", "warning")
@@ -100,7 +106,7 @@ def auth_callback():
 
     try:
         tok = requests.post(GOOGLE_TOKEN_ENDPOINT, data=data, timeout=20)
-    except Exception as e:
+    except Exception:
         session.pop("oauth_state", None)
         session.pop("oauth_nonce", None)
         current_app.logger.exception("Error llamando a token endpoint de Google")
@@ -147,16 +153,13 @@ def auth_callback():
         flash("La cuenta de Google no tiene email verificado.", "danger")
         return redirect(url_for("main.index"))
 
-    # 5) Crear/actualizar usuario
+    # 5) Crear/actualizar usuario + membresía por defecto
     u = db.session.get(User, email)
     if not u:
         u = User(email=email, created_at=datetime.utcnow())
         db.session.add(u)
-    
-    # Garantiza que exista LEVEL_1
-    lvl1 = ensure_level1()
 
-    # Si el usuario no tiene nivel, asígnale LEVEL_1
+    lvl1 = ensure_level1()  # crea LEVEL_1 si no existe
     if not u.membership_id:
         u.membership_id = lvl1.id
 
@@ -167,7 +170,7 @@ def auth_callback():
     u.last_login_at = datetime.utcnow()
     db.session.commit()
 
-    # 6) Guardar sesión app
+    # 6) Sesión
     session["user_email"] = email
     session["user_name"] = name
     session["user_picture"] = picture
