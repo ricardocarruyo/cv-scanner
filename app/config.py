@@ -1,18 +1,5 @@
+# config.py
 import os
-
-class Config:
-    SECRET_KEY = os.getenv("FLASK_SECRET", "dev-secret-change-me")
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///usage.db")
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-    MAX_CONTENT_LENGTH = 2 * 1024 * 1024  # 2MB
-
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-    GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-    GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-    APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:10000")
-    ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
-    APP_VERSION = "v1.0.0"
 
 class BaseConfig:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev")
@@ -20,16 +7,26 @@ class BaseConfig:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     APP_VERSION = os.getenv("APP_VERSION", "local")
     ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "")
+
+    # URLs
+    APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:10000")
+    OAUTH_REDIRECT_URI = os.getenv("OAUTH_REDIRECT_URI", "http://localhost:10000/auth/callback")
+    FORCE_HTTPS = os.getenv("FORCE_HTTPS", "false").lower() == "true"  # prod=True
+
     # OAuth
     GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
     GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
-    OAUTH_REDIRECT_URI = os.getenv("OAUTH_REDIRECT_URI", "http://localhost:10000/auth/callback")
+
     # LLM
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 class DevConfig(BaseConfig):
     DEBUG = True
+    # En local normalmente no forzamos https
+    FORCE_HTTPS = os.getenv("FORCE_HTTPS", "false").lower() == "true"
 
 class ProdConfig(BaseConfig):
     DEBUG = False
+    # En prod, por defecto forzamos https (puedes overridear con env)
+    FORCE_HTTPS = os.getenv("FORCE_HTTPS", "true").lower() == "true"

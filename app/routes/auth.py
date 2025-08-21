@@ -23,21 +23,38 @@ def _rand(n=24):
 
 def _callback_url() -> str:
     """
-    Prioridades:
-    1) GOOGLE_REDIRECT_URI (si está definida)         -> usar tal cual.
-    2) APP_BASE_URL + '/auth/callback'                -> si está definida.
-    3) url_for(..., _external=True) respetando esquema (PREFERRED_URL_SCHEME o X-Forwarded-Proto).
+    Devuelve SIEMPRE la misma redirect_uri para /login y /auth/callback.
+
+    Prioridad:
+    1) OAUTH_REDIRECT_URI (env/config)  → se usa tal cual.
+    2) APP_BASE_URL + '/auth/callback'  → ajusta https si FORCE_HTTPS=true.
+    3) request.host_url + '/auth/callback' → último recurso.
+
+    Además, deja trazas en log para depurar rápidamente.
     """
-    explicit = current_app.config.get("GOOGLE_REDIRECT_URI")
+    # 1) Redirect explícito (recomendado en prod y local)
+    explicit = current_app.config.get("OAUTH_REDIRECT_URI")
     if explicit:
+        current_app.logger.info("OAuth redirect_uri (explicit) = %s", explicit)
         return explicit.rstrip("/")
 
-    base = current_app.config.get("APP_BASE_URL")
+    # 2) APP_BASE_URL
+    base = (current_app.config.get("APP_BASE_URL") or "").strip().rstrip("/")
     if base:
-        return base.rstrip("/") + "/auth/callback"
+        if current_app.config.get("FORCE_HTTPS", False) and base.startswith("http://"):
+            base = "https://" + base[len("http://"):]
+        uri = f"{base}/auth/callback"
+        current_app.logger.info("OAuth redirect_uri (from APP_BASE_URL) = %s", uri)
+        return uri
 
-    scheme = current_app.config.get("PREFERRED_URL_SCHEME", request.scheme or "http")
-    return url_for("auth.auth_callback", _external=True, _scheme=scheme)
+    # 3) Último recurso: host actual
+    from flask import request
+    base = request.host_url.rstrip("/")
+    if current_app.config.get("FORCE_HTTPS", False) and base.startswith("http://"):
+        base = "https://" + base[len("http://"):]
+    uri = f"{base}/auth/callback"
+    current_app.logger.info("OAuth redirect_uri (from request.host_url) = %s", uri)
+    return uri
 
 @bp.route("/login")
 def login():

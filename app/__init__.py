@@ -83,6 +83,6 @@ def create_app():
             "is_en": (lang == "en"),
             "t": t,
         }
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
     return app
