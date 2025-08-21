@@ -253,11 +253,14 @@ def index():
             limit = u.exec_limit
 
             if used >= limit:
-                # mensajes i18n (ver sección i18n más abajo)
-                lang = session.get("lang", "es")               
-                msg = tr(lang, "err.limit_reached", limit=limit)
-                flash(msg, "warning")
+                # Guardamos datos para el modal en sesión
+                session["limit_modal"] = {
+                    "limit": limit,
+                    "lang": session.get("lang", "es")
+                }
                 return redirect(url_for("main.index"))
+            
+            limit_modal_data = session.pop("limit_modal", None)
 
             jd_lang = detectar_idioma(jobdesc)
 
@@ -315,7 +318,7 @@ def index():
             current_app.logger.exception("Error durante el análisis")
             flash(tr(lang, "err.generic"))
             return redirect(url_for("main.index"))
-
+        
     # GET
     return render_template(
         "index.html",
@@ -329,7 +332,9 @@ def index():
         model_used=None, exec_id=None,
         max_mb=MAX_MB, jobdesc=None,
         just_analyzed=False,
-        is_admin=_is_admin()
+        is_admin=_is_admin(),
+        show_limit_modal=bool(limit_modal_data),
+        limit_for_modal=(limit_modal_data or {}).get("limit")
     )
 
 

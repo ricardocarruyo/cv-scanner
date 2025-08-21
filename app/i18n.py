@@ -119,7 +119,7 @@ STRINGS = {
         "print.print_button": "Imprimir / Guardar PDF",
 
         # Membresías
-        "err.limit_reached": "Has alcanzado tu límite de {limit} análisis para tu nivel.",
+        "err.limit_reached": "Has alcanzado tu límite de {limit} análisis para tu nivel. Si no cuentas con recursos económicos y deseas seguir usando la herramienta, por favor escríbenos a cvmatchscanner@gmail.com explicando tu situación para optar por una extensión. También puedes apoyarnos con un donativo para convertirte en colaborador de la aplicación y obtener un mayor número de análisis.",
         "admin.memberships.title": "Membresías",
         "admin.memberships.create": "Crear/Actualizar nivel",
         "admin.memberships.code": "Código",
@@ -128,6 +128,13 @@ STRINGS = {
         "admin.memberships.active": "Activo",
         "admin.memberships.save": "Guardar",
         "admin.memberships.delete": "Eliminar",
+
+        # Limit modal
+        "limit_modal.title": "Has alcanzado tu límite",
+        "limit_modal.body": "Has alcanzado tu límite de {limit} análisis para tu nivel. Si no cuentas con recursos económicos y deseas seguir usando la herramienta, por favor escríbenos a cvmatchscanner@gmail.com explicando tu situación para optar por una extensión. También puedes apoyarnos con un donativo para convertirte en colaborador de la aplicación y obtener un mayor número de análisis.",
+        "limit_modal.contact_cta": "Escribir a soporte",
+        "limit_modal.donate_cta": "Hacer un donativo",
+        "limit_modal.close": "Cerrar"
 
     },
     "en": {
@@ -243,7 +250,7 @@ STRINGS = {
         "print.print_button": "Print / Save PDF",
         
         # Memberships
-        "err.limit_reached": "You have reached your limit of {limit} analyses for your plan.",
+        "err.limit_reached": "You have reached your limit of {limit} analyses for your current level. If you do not have the financial resources and wish to continue using the tool, please write to cvmatchscanner@gmail.com explaining your situation to request an extension. You can also support us with a donation to become a supporter of the application and gain access to more analyses.",
         "admin.memberships.title": "Memberships",
         "admin.memberships.create": "Create/Update level",
         "admin.memberships.code": "Code",
@@ -252,6 +259,13 @@ STRINGS = {
         "admin.memberships.active": "Active",
         "admin.memberships.save": "Save",
         "admin.memberships.delete": "Delete",
+
+        # Limit modal
+        "limit_modal.title": "You’ve reached your limit",
+        "limit_modal.body": "You have reached your limit of {limit} analyses for your current level. If you do not have the financial resources and wish to continue using the tool, please write to cvmatchscanner@gmail.com explaining your situation to request an extension. You can also support us with a donation to become a collaborator of the application and gain access to more analyses.",
+        "limit_modal.contact_cta": "Contact support",
+        "limit_modal.donate_cta": "Make a donation",
+        "limit_modal.close": "Close"
     }
 }
 

@@ -282,6 +282,45 @@
       .catch(() => location.reload());
     }
   </script>
+  <!-- Modal límite de análisis -->
+  <div class="modal fade" id="limitModal" tabindex="-1" aria-labelledby="limitModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="limitModalLabel">{{ t('limit_modal.title') }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ t('limit_modal.close') }}"></button>
+        </div>
+        <div class="modal-body">
+          {{ t('limit_modal.body', limit=(limit_for_modal or 10)) }}
+        </div>
+        <div class="modal-footer">
+          <a class="btn btn-outline-secondary" href="mailto:cvmatchscanner@gmail.com?subject=Solicitud%20de%20extensi%C3%B3n%20de%20l%C3%ADmite">
+            <i class="bi bi-envelope"></i> {{ t('limit_modal.contact_cta') }}
+          </a>
+          {% if donate_url %}
+            <a class="btn btn-primary" href="{{ donate_url }}" target="_blank" rel="noopener">
+              <i class="bi bi-heart"></i> {{ t('limit_modal.donate_cta') }}
+            </a>
+          {% endif %}
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ t('limit_modal.close') }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if show_limit_modal %}
+  <script>
+    (function(){
+      const el = document.getElementById('limitModal');
+      if (!el) return;
+      try {
+        var modal = new bootstrap.Modal(el, { backdrop: 'static', keyboard: true });
+        modal.show();
+      } catch(e) { console.error(e); }
+    })();
+  </script>
+  {% endif %}
+
   {% block extra_js %}{% endblock %}
 </body>
 </html>
