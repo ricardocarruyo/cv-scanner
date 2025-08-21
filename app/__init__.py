@@ -15,6 +15,7 @@ from .routes.history import bp as history_bp
 from .routes.admin import bp as admin_bp
 import logging
 from dotenv import load_dotenv
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 load_dotenv() 
 
@@ -82,5 +83,6 @@ def create_app():
             "is_en": (lang == "en"),
             "t": t,
         }
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
     return app
