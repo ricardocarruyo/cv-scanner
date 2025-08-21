@@ -307,7 +307,9 @@ def index():
                 max_mb=MAX_MB,
                 jobdesc=jobdesc,
                 just_analyzed=True,
-                is_admin=_is_admin()
+                is_admin=_is_admin(),
+                show_limit_modal=bool(limit_modal_data),
+                limit_for_modal=(limit_modal_data or {}).get("limit", None)
             ))
             resp.headers["Content-Type"] = "text/html; charset=utf-8"
             resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0, s-maxage=0"
@@ -333,8 +335,8 @@ def index():
         max_mb=MAX_MB, jobdesc=None,
         just_analyzed=False,
         is_admin=_is_admin(),
-        show_limit_modal=bool(limit_modal_data),
-        limit_for_modal=(limit_modal_data or {}).get("limit")
+        show_limit_modal=False,
+        limit_for_modal=None
     )
 
 
