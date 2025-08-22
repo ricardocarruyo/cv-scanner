@@ -138,7 +138,20 @@ STRINGS = {
 
         # Overlay
         "overlay.processing": "Procesando análisis…",
-        "overlay.processing.alt": "Procesando análisis (accesible)"
+        "overlay.processing.alt": "Procesando análisis (accesible)",
+
+        # Donación
+        "donate_blurb.title": "Apóyanos",
+        "donate_blurb.body": 
+            "Esta herramienta de comparación entre CVs y ofertas de trabajo es totalmente gratuita y "
+            "está disponible para todos. Sin embargo, mantenerla en línea implica costos constantes de "
+            "servidores y de acceso a APIs. Tu colaboración voluntaria nos permite cubrir estos gastos y, "
+            "al mismo tiempo, continuar mejorando la plataforma con nuevas funcionalidades y más análisis "
+            "disponibles. Si valoras este servicio y deseas que siga creciendo, considera hacer una donación. "
+            "Cada aporte, por pequeño que sea, marca una gran diferencia y nos ayuda a mantener activo este "
+            "proyecto para toda la comunidad."
+        ,
+        "donate_blurb.cta": "Donar",
 
     },
     "en": {
@@ -273,7 +286,19 @@ STRINGS = {
 
         # Overlay
         "overlay.processing": "Processing analysis…",
-        "overlay.processing.alt": "Processing analysis (accessible)"
+        "overlay.processing.alt": "Processing analysis (accessible)",
+
+        # Donation
+        "donate_blurb.title": "Support Us",
+        "donate_blurb.body": 
+            "This CV vs. job posting comparison tool is completely free and accessible to everyone. "
+            "However, keeping it online requires ongoing expenses for servers and API usage. "
+            "Your voluntary contribution helps us cover these costs while continuing to improve the platform "
+            "with new features and additional analyses. If you find value in this service and want to see it "
+            "grow, please consider making a donation. Every contribution, no matter the size, makes a big "
+            "difference and helps us keep this project alive for the entire community."
+        ,
+        "donate_blurb.cta": "Donate",
     }
 }
 

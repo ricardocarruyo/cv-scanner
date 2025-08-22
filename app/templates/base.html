@@ -26,10 +26,10 @@
                 connect-src 'self' https:;
                 style-src 'self' https: 'unsafe-inline';">
   
-  <!-- PayPal Hosted Buttons SDK -->
-  <script
+  <!-- PayPal LINK -->
+  <!-- <script 
     src="https://www.paypal.com/sdk/js?client-id=BAAc837KUU2muz35CHRVhWS-DVVqKXPMToq84j8O8gqtxlEGXP2kutIh60YJ80aPW9Jm8rYuKKWOSqQTYA&components=hosted-buttons&disable-funding=venmo&currency=USD">
-  </script>
+  </script> -->
 
   <!-- En <head> deja estas reglas -->
   <style>
@@ -124,6 +124,18 @@
     .btn-warning {
       border: 1px solid #d39e00; /* tono amarillo un poco más oscuro */
     }
+    /* Modal Donar: ancho cómodo y centrado del contenido */
+    .modal-donate .modal-content{ border-radius:1rem; }
+    .modal-donate .modal-body{ padding:1.25rem 1.5rem; }
+
+    /* Contenedor interno centrado: limita el ancho de párrafos */
+    .modal-donate .centered { max-width: 560px; margin-inline: auto; }
+
+    /* Justificar texto (Bootstrap 5 no trae utilitario .text-justify) */
+    .text-justify { text-align: justify; }
+
+    /* Centrar el contenedor de PayPal y darle un ancho razonable */
+    #paypal-container-navbar { max-width: 380px; margin: 1rem auto 0; }
 
   </style>
 
@@ -155,7 +167,7 @@
         </a>
 
         <!-- Botón Video -->
-        <a class="btn btn-sm btn-outline-dark me-2"
+        <a class="btn btn-sm btn-outline-primary me-2"
           href="{{ video_url }}" target="_blank" rel="noopener">
           <i class="bi bi-play-circle"
             data-bs-toggle="tooltip"
@@ -165,13 +177,15 @@
         </a>
 
         <!-- Botón Donar -->
-        <button class="btn btn-sm  btn-outline-dark btn-warning me-2" data-bs-toggle="modal" data-bs-target="#donateModal">
+        <a href="https://www.paypal.com/ncp/payment/86XQCYFDC3VSN" 
+          target="_blank" rel="noopener"
+          class="btn-sm btn btn-primary me-2">
           <i class="bi bi-heart-fill"></i> {{ 'Donate' if is_en else 'Donar' }}
-        </button>
+        </a>
 
         <!-- Selector de idioma -->
         <div class="dropdown me-3">
-          <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center" 
+          <button class="btn btn-sm btn-outline-primary dropdown-toggle d-flex align-items-center" 
                   type="button" id="langDropdown" data-bs-toggle="dropdown" aria-expanded="false">
             {% if is_en %}
               <span class="fi fi-us me-2"></span> English
@@ -260,6 +274,14 @@
   <!-- Footer -->
   <footer class="site-footer">
     <div class="container">
+
+      <div class="mt-3">
+        <div class="fw-semibold mb-1">{{ t('donate_blurb.title') }}</div>
+        <p class="small text-muted mb-2" style="max-width: 200ch; text-align: justify; padding-bottom: 20px;">
+          {{ t('donate_blurb.body') }}
+        </p>
+      </div>
+
       <div class="footer-top">
         <div>
           <div class="fw-semibold">
@@ -299,6 +321,7 @@
           </a>
         </div>
       </div>
+
     </div>
   </footer>
 
@@ -323,16 +346,16 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ t('limit_modal.close') }}"></button>
         </div>
         <div class="modal-body">
-          {{ t('limit_modal.body', limit=(limit_for_modal or 10)) }}
+          <p class="text-justify">{{ t('limit_modal.body', limit=(limit_for_modal or 10)) }}</p>
         </div>
-        <div class="modal-footer d-block">
-          <div id="paypal-container-limit" class="mb-2"></div>
-          {% if donate_url %}
-            <a class="btn btn-primary" href="{{ donate_url }}" target="_blank" rel="noopener">
-              <i class="bi bi-heart"></i> {{ t('limit_modal.donate_cta') }}
-            </a>
-          {% endif %}
-          <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ t('limit_modal.close') }}</button>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ t('limit_modal.close') }}</button>
+          <!-- Botón Donar -->
+          <a href="https://www.paypal.com/ncp/payment/86XQCYFDC3VSN" 
+            target="_blank" rel="noopener"
+            class="btn btn-primary">
+            <i class="bi bi-heart-fill"></i> {{ 'Donate' if is_en else 'Donar' }}
+          </a>
         </div>
       </div>
     </div>
@@ -353,23 +376,31 @@
 
   <!-- Modal Donaciones (navbar) -->
   <div class="modal fade" id="donateModal" tabindex="-1" aria-labelledby="donateModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-donate">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 id="donateModalLabel" class="modal-title">
+          <h5 id="donateModalLabel" class="modal-title text-center w-100">
             {{ 'Support the project' if is_en else 'Apoya el proyecto' }}
           </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'Close' if is_en else 'Cerrar' }}"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"
+                  aria-label="{{ 'Close' if is_en else 'Cerrar' }}"></button>
         </div>
-        <div class="modal-body">
-          <p class="small text-muted mb-3">
-            {{ 'Your donation helps keep the service online and improve features.' 
-              if is_en else 
-              'Tu donación ayuda a mantener el servicio en línea y mejorar funcionalidades.' }}
-          </p>
 
-          <!-- Contenedor PayPal (navbar) -->
-          <div id="paypal-container-navbar"></div>
+        <div class="modal-body">
+          <div class="centered">
+            <p class="fw-semibold text-center mb-3">
+              {{ 'Your donation helps keep the service online and improve features.'
+                if is_en else
+                'Tu donación ayuda a mantener el servicio en línea y mejorar funcionalidades.' }}
+            </p>
+            <!-- Contenedor PayPal (centrado y con ancho fijo) -->
+            <!-- Botón Donar (link directo de PayPal) -->
+            <a href="https://www.paypal.com/ncp/payment/86XQCYFDC3VSN" 
+              target="_blank" rel="noopener"
+              class="btn btn-warning w-100 mb-2">
+              <i class="bi bi-paypal"></i> {{ 'Donate with PayPal' if is_en else 'Donar con PayPal' }}
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -385,35 +416,35 @@
 
   <script>
     // Renderiza HostedButtons en el selector indicado (solo una vez)
-    function renderPaypal(containerSelector) {
-      if (!window.paypal) return; // SDK aún no cargado
-      const el = document.querySelector(containerSelector);
-      if (!el || el.dataset.rendered === "1") return;
-      paypal.HostedButtons({ hostedButtonId: "8SBMAGAYSMREU" }).render(containerSelector);
-      el.dataset.rendered = "1";
-    }
+    // function renderPaypal(containerSelector) {
+    //   if (!window.paypal) return; // SDK aún no cargado
+    //   const el = document.querySelector(containerSelector);
+    //   if (!el || el.dataset.rendered === "1") return;
+    //   paypal.HostedButtons({ hostedButtonId: "8SBMAGAYSMREU" }).render(containerSelector);
+    //   el.dataset.rendered = "1";
+    // }
 
     // Cuando se muestre el modal de donaciones (navbar)
-    document.addEventListener('shown.bs.modal', function (e) {
-      if (e.target && e.target.id === 'donateModal') {
-        renderPaypal('#paypal-container-navbar');
-      }
-    });
+    // document.addEventListener('shown.bs.modal', function (e) {
+    //   if (e.target && e.target.id === 'donateModal') {
+    //     renderPaypal('#paypal-container-navbar');
+    //   }
+    // });
 
-    // (Opcional) Si tienes un modal de límite alcanzado:
-    document.addEventListener('shown.bs.modal', function (e) {
-      if (e.target && e.target.id === 'limitModal') {
-        renderPaypal('#paypal-container-limit');
-      }
-    });
+    // // (Opcional) Si tienes un modal de límite alcanzado:
+    // document.addEventListener('shown.bs.modal', function (e) {
+    //   if (e.target && e.target.id === 'limitModal') {
+    //     renderPaypal('#paypal-container-limit');
+    //   }
+    // });
 
-    // Fallback: si el modal ya está visible cuando el SDK termina de cargar
-    window.addEventListener('load', function(){
-      const dm = document.getElementById('donateModal');
-      if (dm && dm.classList.contains('show')) {
-        renderPaypal('#paypal-container-navbar');
-      }
-    });
+    // // Fallback: si el modal ya está visible cuando el SDK termina de cargar
+    // window.addEventListener('load', function(){
+    //   const dm = document.getElementById('donateModal');
+    //   if (dm && dm.classList.contains('show')) {
+    //     renderPaypal('#paypal-container-navbar');
+    //   }
+    // });
   </script>  
 
 <script>
