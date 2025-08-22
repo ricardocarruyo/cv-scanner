@@ -134,7 +134,11 @@ STRINGS = {
         "limit_modal.body": "Has alcanzado tu límite de {limit} análisis para tu nivel. Si no cuentas con recursos económicos y deseas seguir usando la herramienta, por favor escríbenos a cvmatchscanner@gmail.com explicando tu situación para optar por una extensión. También puedes apoyarnos con un donativo para convertirte en colaborador de la aplicación y obtener un mayor número de análisis.",
         "limit_modal.contact_cta": "Escribir a soporte",
         "limit_modal.donate_cta": "Hacer un donativo",
-        "limit_modal.close": "Cerrar"
+        "limit_modal.close": "Cerrar",
+
+        # Overlay
+        "overlay.processing": "Procesando análisis…",
+        "overlay.processing.alt": "Procesando análisis (accesible)"
 
     },
     "en": {
@@ -265,7 +269,11 @@ STRINGS = {
         "limit_modal.body": "You have reached your limit of {limit} analyses for your current level. If you do not have the financial resources and wish to continue using the tool, please write to cvmatchscanner@gmail.com explaining your situation to request an extension. You can also support us with a donation to become a collaborator of the application and gain access to more analyses.",
         "limit_modal.contact_cta": "Contact support",
         "limit_modal.donate_cta": "Make a donation",
-        "limit_modal.close": "Close"
+        "limit_modal.close": "Close",
+
+        # Overlay
+        "overlay.processing": "Processing analysis…",
+        "overlay.processing.alt": "Processing analysis (accessible)"
     }
 }
 

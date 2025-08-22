@@ -67,6 +67,9 @@ def index():
     name = session.get("user_name")
     picture = session.get("user_picture")
 
+    # <<< NUEVO: inicialízalo SIEMPRE >>>
+    limit_modal_data = None
+
     if request.method == "POST":
         try:
             if not email:
@@ -258,9 +261,7 @@ def index():
                     "limit": limit,
                     "lang": session.get("lang", "es")
                 }
-                return redirect(url_for("main.index"))
-            
-            limit_modal_data = session.pop("limit_modal", None)
+                return redirect(url_for("main.index"))       
 
             jd_lang = detectar_idioma(jobdesc)
 
@@ -308,8 +309,7 @@ def index():
                 jobdesc=jobdesc,
                 just_analyzed=True,
                 is_admin=_is_admin(),
-                show_limit_modal=bool(limit_modal_data),
-                limit_for_modal=(limit_modal_data or {}).get("limit", None)
+                show_limit_modal=False, limit_for_modal=None
             ))
             resp.headers["Content-Type"] = "text/html; charset=utf-8"
             resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0, s-maxage=0"
@@ -320,6 +320,8 @@ def index():
             current_app.logger.exception("Error durante el análisis")
             flash(tr(lang, "err.generic"))
             return redirect(url_for("main.index"))
+        
+    limit_modal_data = session.pop("limit_modal", None)
         
     # GET
     return render_template(
@@ -335,8 +337,8 @@ def index():
         max_mb=MAX_MB, jobdesc=None,
         just_analyzed=False,
         is_admin=_is_admin(),
-        show_limit_modal=False,
-        limit_for_modal=None
+        show_limit_modal=bool(limit_modal_data),
+        limit_for_modal=(limit_modal_data or {}).get("limit")
     )
 
 

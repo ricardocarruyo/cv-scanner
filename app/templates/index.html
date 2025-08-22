@@ -201,7 +201,7 @@
         <div class="col-12 col-lg-6">
           <div class="card p-4 shadow-sm h-100">
             {# === TU FORM COMPLETO COMO LO TENÍAS === #}
-            <form method="post" enctype="multipart/form-data" action="{{ url_for('main.index') }}">
+            <form id="analyzeForm" method="post" enctype="multipart/form-data" action="{{ url_for('main.index') }}" autocomplete="off">
               <!-- Panel de lineamientos corto arriba del form -->
               <div class="w-100">
                 <h5 class="mb-2">{{ t('panel.guidelines.title') }}</h5>
@@ -270,7 +270,7 @@
               <!-- Botón + indicador ③ -->
               <div class="before-button">
                 <span id="badge-step3" class="badge-circle">3</span>
-                <button type="submit" class="btn btn-primary w-100">
+                <button id="btn-analyze" type="submit" class="btn btn-primary w-100" data-once>
                   <i class="bi bi-search"></i> {{ t('form.analyze') }}
                 </button>
               </div>
@@ -348,7 +348,7 @@
           <i class="bi bi-chat-text"></i>
           {{ is_en and "Do you have suggestions to improve?" or "¿Tienes sugerencias para mejorar?" }}
         </h4>
-        <form method="post" action="{{ url_for('main.leave_comment') }}">
+        <form id="suggestionsForm" method="post" action="{{ url_for('main.leave_comment') }}">
           <div class="mb-2">
             <label class="form-label">{{ is_en and "Your comment" or "Tu comentario" }}</label>
             <textarea class="form-control suggestions-textarea"  
