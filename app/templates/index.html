@@ -120,23 +120,15 @@
     max-width: 520px;     /* un poco más grande en ancho completo */
     height: auto;
     border-radius: .75rem;
-    box-shadow: 0 8px 24px rgba(0,0,0,.06);
+    box-shadow: 0 4px 8px rgba(0,0,0,.1);
+    z-index: 1;
   }
 
-  .stepper-img{ width:100%; max-width:580px; display:block; height:auto; }
+  .stepper-img{ width:100%; max-width:580px; display:block; height:auto; z-index: 1;}
 
   /* En modo hero a ancho completo no necesitamos “igualar paneles” */
   .equal-panels.row{ align-items: stretch; }
   .equal-panels .card{ height: 100%; }
-
-  /* Fondo un poco más claro */
-  body{
-    background:
-      radial-gradient(circle at 25% 10%, rgba(255,255,255,.92) 0 40%, transparent 41%),
-      radial-gradient(circle at 75% 0%,  rgba(255,255,255,.88) 0 35%, transparent 36%),
-      linear-gradient(180deg, #f9fbfe, #f2f6fb);
-  }
-
 </style>
 {% endblock %}
 

@@ -21,6 +21,8 @@ class BaseConfig:
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
+    DONATIONS_ENABLED = os.getenv("DONATIONS_ENABLED", "true").lower() == "true"
+    
 class DevConfig(BaseConfig):
     DEBUG = True
     # En local normalmente no forzamos https

@@ -78,6 +78,7 @@ def create_app():
         def t(key, **kwargs):
             return tr(lang, key, **kwargs)
         return {
+            "donate_enabled": app.config.get("DONATIONS_ENABLED", True),
             "current_year": datetime.utcnow().year,
             "version": app.config.get("APP_VERSION", "v0"),
             "is_en": (lang == "en"),
