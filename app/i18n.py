@@ -153,6 +153,10 @@ STRINGS = {
         ,
         "donate_blurb.cta": "Donar",
 
+        # Max pages
+        "ai.pages_leq2": "Máximo 2 páginas",
+        "ai.pages_current": "actual",
+
     },
     "en": {
         "app.title": "CV Match Scanner",
@@ -299,6 +303,10 @@ STRINGS = {
             "difference and helps us keep this project alive for the entire community."
         ,
         "donate_blurb.cta": "Donate",
+
+        # Max pages
+        "ai.pages_leq2": "Maximum 2 pages",
+        "ai.pages_current": "current",
     }
 }
 

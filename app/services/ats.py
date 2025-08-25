@@ -100,107 +100,110 @@ def evaluate_ats_compliance(
     ext: str,
     pdf_meta=None,
     docx_meta=None,
-    docx_fonts=None  # aquí pasan tanto fuentes de DOCX como de PDF (via main)
+    docx_fonts=None,
 ):
     t = (text or "")
     t_lc = t.lower()
     words = re.findall(r"\b\w+\b", t_lc)
     wcount = len(words)
 
-    # 1) Secciones
+    # 1) Secciones detectadas (listas)
     sections_present, sections_missing, found_sections = _detect_sections(t_lc)
 
-    # 2) Idioma
-    lang_ok = (lang_code in ("es", "en"))
+    # Booleans por sección (5 checks)
+    sec_perfil      = ("perfil profesional"   in sections_present)
+    sec_experiencia = ("experiencia laboral"  in sections_present)
+    sec_educacion   = ("educación"            in sections_present)
+    sec_habilidades = ("habilidades"          in sections_present)
+    sec_idiomas     = ("idiomas"              in sections_present)
 
-    # 3) Páginas
+    # 2) Páginas (1 check)
     if pdf_meta and isinstance(pdf_meta.get("pages"), int):
         pages = pdf_meta["pages"]
     else:
         pages = estimate_pages_from_words(wcount)
-    pages_ok = pages <= 2
+    paginas_ok = (pages <= 2)
 
-    # 4) Imágenes / Tablas
+    # 3) Imágenes/Tablas (2 checks)
     images = 0
     tables = 0
     if pdf_meta:
         images += int(pdf_meta.get("images", 0))
-        # si el extractor de PDF detectara tablas/columnas se podrían sumar aquí
+        # si alguna vez extraes tablas/columnas del PDF, súmalas aquí
     if docx_meta:
         images += int(docx_meta.get("images", 0))
         tables += int(docx_meta.get("tables", 0))
 
-    no_images = (images == 0)
-    no_tables = (tables == 0)
+    no_imagenes = (images == 0)           # preferido: sin imágenes
+    no_tablas   = (tables == 0)           # preferido: sin tablas/columnas
 
-    has_images = images > 0
-    has_tables_or_columns = tables > 0
-
-    # 5) Tipografías (PDF o DOCX)
-    detected_fonts = None
-
-    # preferimos el parámetro explícito docx_fonts (usa ambos casos: docx o pdf)
+    # 4) Tipografías (1 check)
+    # preferimos docx_fonts (ya normalizado por quien llama)
     if isinstance(docx_fonts, (list, tuple)):
         detected_fonts = list(docx_fonts)
-    # o si vino en meta de docx
     elif docx_meta and isinstance(docx_meta.get("fonts"), list):
         detected_fonts = list(docx_meta["fonts"])
-    # o si vino en meta de pdf (por si decides no enviarlo en docx_fonts)
     elif pdf_meta and isinstance(pdf_meta.get("fonts"), list):
         detected_fonts = list(pdf_meta["fonts"])
+    else:
+        detected_fonts = None
 
     normalized = normalize_fonts(detected_fonts)
-    safe_typography: Optional[bool]
     if normalized:
         if any(f in GOOD_FONTS for f in normalized):
-            safe_typography = True
+            tipografia_segura = True
         elif any(f in BAD_FONTS for f in normalized):
-            safe_typography = False
+            tipografia_segura = False
         else:
-            # si no coincide con ninguna lista, se considera “no segura”
-            safe_typography = False
+            tipografia_segura = False
     else:
-        safe_typography = None  # indeterminado (común en PDFs si no hay PyMuPDF)
+        # Si no pudimos detectar fuentes, asumimos NO segura para que el % refleje
+        # exactamente el checklist (sin “bonos”).
+        tipografia_segura = False
 
-    # 6) Bonus leve si es indeterminado pero se menciona una fuente segura en el texto
-    common = [w for w in words if w.isalpha()]
-    _ = [w for w, _c in Counter(common).most_common(200)]
-    fonts_bonus = 0
-    if safe_typography is None:
-        if any(f in t_lc for f in GOOD_FONTS):
-            fonts_bonus = 3
+    # =========================
+    # 9 CHECKS DEL CHECKLIST
+    # =========================
+    checks = {
+        # secciones (5)
+        "perfil": sec_perfil,
+        "experiencia": sec_experiencia,
+        "educacion": sec_educacion,
+        "habilidades": sec_habilidades,
+        "idiomas": sec_idiomas,
+        # estructura (3)
+        "no_imagenes": no_imagenes,
+        "no_tablas": no_tablas,
+        "tipografia_segura": tipografia_segura,
+        # páginas (1)
+        "paginas_ok": paginas_ok,
+    }
 
-    # ===== Scoring =====
-    score = 0
-    score += min(found_sections, 5) * 9        # secciones (hasta 45)
-    score += 20 if lang_ok else 0              # idioma
-    if pages_ok:                               # páginas
-        score += 15
-    elif pages == 3:
-        score += 7
-    score += 10 if no_images else 0            # sin imágenes
-    score += 10 if no_tables else 0            # sin tablas/columnas
-    if safe_typography is True:                # tipografía segura confirmada
-        score += 5
-    score += fonts_bonus                       # bonus textual si indeterminado
-
-    score = max(0, min(100, score))
+    ok_count = sum(1 for v in checks.values() if v is True)
+    total = len(checks)   # 9
+    score = round((ok_count / total) * 100)
 
     details = {
+        # Para tu UI actual:
         "sections_present": sections_present,
         "sections_missing": sections_missing,
         "sections_found": found_sections,
-        "lang_ok": lang_ok,
+
         "pages": pages,
         "images": images,
         "tables": tables,
-        "no_images": no_images,
-        "no_tables": no_tables,
-        "has_images": has_images,
-        "has_tables_or_columns": has_tables_or_columns,
-        "safe_typography": safe_typography,
-        "fonts_bonus": fonts_bonus,
-        # opcional: para depurar puedes exponer qué fuentes se detectaron
-        # "detected_fonts": normalized,
+
+        # Flags tal como los usas en la plantilla
+        "no_images": no_imagenes,
+        "no_tables": no_tablas,
+        "has_images": images > 0,
+        "has_tables_or_columns": tables > 0,
+        "safe_typography": tipografia_segura,
+
+        # Nuevo bloque compacto para pintar el checklist directamente si quieres
+        "checks": checks,
     }
     return score, details
+
+# (Opcional) si en algún lado importabas el nombre anterior, deja un alias:
+evaluate_ats_ = evaluate_ats_compliance

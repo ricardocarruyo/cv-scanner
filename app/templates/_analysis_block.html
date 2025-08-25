@@ -81,49 +81,75 @@
     <div class="card mt-3 mb-2 p-3">
       <h6 class="fw-bold mb-3">{{ t('ai.checklist_title') }}</h6>
 
+      {# Fallback para compatibilidad: si no viniera "checks", lo derivamos de los campos antiguos #}
+      {% set c = ats_details.checks if ats_details.checks is defined else {
+        'perfil':              ('perfil profesional'   in (ats_details.sections_present or [])),
+        'experiencia':         ('experiencia laboral'  in (ats_details.sections_present or [])),
+        'educacion':           ('educación'            in (ats_details.sections_present or [])),
+        'habilidades':         ('habilidades'          in (ats_details.sections_present or [])),
+        'idiomas':             ('idiomas'              in (ats_details.sections_present or [])),
+        'no_imagenes':         (not ats_details.has_images),
+        'no_tablas':           (not ats_details.has_tables_or_columns),
+        'tipografia_segura':   (ats_details.safe_typography == true),
+        'paginas_ok':          ((ats_details.pages or 0) <= 2)
+      } %}
+
       <div class="row gy-2 gx-4">
-        {# Imágenes #}
-        <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
-          {% set ok = not ats_details.has_images %}
-          <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
-          <span>{{ t('ai.images_in_cv') }}: <strong>{{ t('common.no') if ok else t('common.yes') }}</strong></span>
-        </div>
-
-        {# Tablas / columnas #}
-        <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
-          {% set ok = not ats_details.has_tables_or_columns %}
-          <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
-          <span>{{ t('ai.tables_or_columns') }}: <strong>{{ t('common.no') if ok else t('common.yes') }}</strong></span>
-        </div>
-
-        {# Tipografía segura #}
-        <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
-          {% if ats_details.safe_typography is none %}
-            <i class="bi bi-dash-circle-fill text-secondary me-2"></i>
-            <span>{{ t('ai.safe_typography') }}: <strong>{{ t('common.undetermined') }}</strong></span>
-          {% else %}
-            {% set ok = ats_details.safe_typography %}
-            <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
-            <span>{{ t('ai.safe_typography') }}: <strong>{{ t('common.yes') if ok else t('common.no') }}</strong></span>
-          {% endif %}
-        </div>
-
-        {# Secciones (las claves vienen en ES desde el motor; solo traducimos la etiqueta visible) #}
-        {% set present = ats_details.sections_present or [] %}
+        {# 1–5) Secciones equivalentes #}
         {% set sec_labels = {
-            'perfil profesional': t('sec.profile'),
-            'experiencia laboral': t('sec.experience'),
-            'educación': t('sec.education'),
+            'perfil':      t('sec.profile'),
+            'experiencia': t('sec.experience'),
+            'educacion':   t('sec.education'),
             'habilidades': t('sec.skills'),
-            'idiomas': t('sec.languages')
+            'idiomas':     t('sec.languages')
           } %}
-        {% for canonical in ['perfil profesional','experiencia laboral','educación','habilidades','idiomas'] %}
+
+        {% for key in ['perfil','experiencia','educacion','habilidades','idiomas'] %}
           <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
-            {% set ok = canonical in present %}
+            {% set ok = c[key] %}
             <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
-            <span>{{ sec_labels[canonical] }}</span>
+            <span>{{ sec_labels[key] }}</span>
           </div>
         {% endfor %}
+
+        {# 6) Sin imágenes #}
+        <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
+          {% set ok = c.no_imagenes %}
+          <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
+          <span>{{ t('ai.images_in_cv') }}:
+            <strong>{{ t('common.no') if ok else t('common.yes') }}</strong>
+          </span>
+        </div>
+
+        {# 7) Sin tablas/columnas #}
+        <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
+          {% set ok = c.no_tablas %}
+          <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
+          <span>{{ t('ai.tables_or_columns') }}:
+            <strong>{{ t('common.no') if ok else t('common.yes') }}</strong>
+          </span>
+        </div>
+
+        {# 8) Tipografía segura #}
+        <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
+          {% set ok = c.tipografia_segura %}
+          <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
+          <span>{{ t('ai.safe_typography') }}:
+            <strong>{{ t('common.yes') if ok else t('common.no') }}</strong>
+          </span>
+        </div>
+
+        {# 9) Páginas ≤ 2 (muestra el número real si lo tienes) #}
+        <div class="col-12 col-sm-6 col-lg-4 d-flex align-items-center">
+          {% set ok = c.paginas_ok %}
+          <i class="bi {{ 'bi-check-circle-fill text-success' if ok else 'bi-x-circle-fill text-danger' }} me-2"></i>
+          <span>
+            {{ t('ai.pages_leq2') }}
+            {% if ats_details.pages is defined and ats_details.pages %}
+              <small class="text-muted">({{ t('ai.pages_current') }}: {{ ats_details.pages }})</small>
+            {% endif %}
+          </span>
+        </div>
       </div>
     </div>
   {% endif %}
